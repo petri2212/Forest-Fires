@@ -79,7 +79,7 @@ sum(forest$area==0)/length(forest$area) # circa 48% sono 0
 # Vediamo meglio il grafico della densità della variabile:
 plot(density(forest$area), col="blue")
 # E' molto asimmetrica verso lo 0, proviamo a farne una trasformata:
-plot(density(log(forest$area)),, col="green")
+plot(density(log(forest$area)), col="green")
 
 # Dobbiamo però tener conto del numero di 0 presenti: log(0) = -Inf, quindi
 forest$area <- log(forest$area+1)
