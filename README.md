@@ -1,5 +1,5 @@
 # Forest-Fires
-[![N|Solid][https://www.unibg.it/](https://upload.wikimedia.org/wikipedia/it/thumb/b/b4/UNIBG_Logo_2018.svg/2560px-UNIBG_Logo_2018.svg.png)(https://www.unibg.it/)
+[![N|Solid](https://upload.wikimedia.org/wikipedia/it/thumb/b/b4/UNIBG_Logo_2018.svg/2560px-UNIBG_Logo_2018.svg.png)](https://www.unibg.it/)
 ## Description
 This project is about the analysis of data from a dataset concerning fires in Portugal.
 ## Features
