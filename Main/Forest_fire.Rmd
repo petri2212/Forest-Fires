@@ -2,13 +2,15 @@
 title: "Forest Fires"
 author: "Andrei Petrisor, Antonio Radu, Lorenzo Medici, Andrea Rusconi"
 date: "2023-12-01"
-output: 
+output:
   html_document:
-      theme: cerulean
-      toc: true
-      toc_float: true
-editor_options: 
-  markdown: 
+    theme: cerulean
+    toc: yes
+    toc_float: yes
+  pdf_document:
+    toc: yes
+editor_options:
+  markdown:
     wrap: 72
 ---
 
@@ -59,13 +61,11 @@ dicembre, Guimaraes, Por- tugal, pp. 512-523, 2007. APPIA, ISBN-13
 978-989-95618-0-9. 18-0-9. Disponibile a:
 <http://www3.dsi.uminho.pt/pcortez/fires.pdf>
 
-Punti 1-4 di come scrivere un buon report:
-
 ```{r, echo=F, message=F}
 # Carichiamo il dataset in formato .csv
 # Importante: bisogna specificare la directory dove il file è salvato.
 
-forest <- read.csv("C:/Users/petri/Desktop/UNI ANNO 2/Statistic/PROGETTO/Forest_fire/forestfires.csv")
+forest <- read.csv("C:/Users/main/Desktop/Forest-Fires/Dataset&Documentation/forestfires.csv")
 
 # Vediamo il nome delle variabili:
 colnames(forest)
@@ -124,4 +124,193 @@ boxplot(forest[,-c(1,2)], col=rainbow(9))
 boxplot(forest$area ~ forest$day, col=rainbow(7))
 # cosa succede a Dicembre?
 boxplot(forest$area ~ forest$month, col=rainbow(12)) 
+```
+
+```{r, message = F}
+# si divide il dataset in train e test (validation) così che si fitta il modello sul train e si guarda la capacità predittiva su nuovi dati, questo serve per evitare di over-fittare i dati di train e fare un modello che si adatta solo ai dati visti dal modello:
+
+# Optional:
+forest <- fastDummies::dummy_cols(forest, remove_first_dummy = TRUE)[-c(1,2)]
+
+# Regole classiche sono 70% training e 30% test (o 80-20 a vostra scelta)
+set.seed(125) # il seme serve per riprodurre le analisi (reproducibilità del codice)
+sample <- sample(c(TRUE, FALSE), nrow(forest), replace=TRUE, prob=c(0.7,0.3))
+train  <- forest[sample, ]
+test   <- forest[!sample, ]
+
+# Modello con una sola variabile:
+model = lm(area ~ rain, data = train)
+
+summary(model)
+
+# Modello con tutte le variabili:
+model1 = lm(area ~ ., data = train)
+summary(model1)
+
+# Diagnostic plot del modello:
+par(mfrow=c(2,2)) # finestra grafica 2x2
+plot(model1)
+par(mfrow=c(1,1)) # riportiamo ai valori di default
+
+# rimuovere outlier:
+# install.packages("olsrr")
+library(olsrr)
+ols_plot_resid_lev(model1)
+
+# Removing observations guardando numero dell'osservazione:
+train = train[-c(480,380,105),]
+
+# Rimuovere osservazioni basandoci sui valori delle variabili:
+# train=train[!(train$temp>300),]
+
+# Modello 1 senza outlier:
+model2 = lm(area ~ ., data = train)
+summary(model2)
+
+# Modello con variabili scelte da noi (scelte casualmente al momento):
+model3 = lm(area ~ month_dec+wind+rain+temp+I(FFMC*month_aug), data = train)
+summary(model3)
+
+# Test ANOVA
+anova(model3)
+
+```
+
+### Confronto tra modelli:
+
+```{r, message = F}
+# Create vector with values
+a = c(AIC(model3), BIC(model3), AIC(model2), BIC(model2), AIC(model1), BIC(model1))
+
+# Akaike Information Criterion (AIC) estimates the in-sample prediction error and indicates the relative quality of statistical models for a given dataset (it is only useful to compare models based on the same data). Bayesian Information Criterion (BIC) is a penalized-likelihood criterion derived from Bayesian probability. It is closely related to AIC. Generally, lower values of BIC and AIC are preferred.
+
+# Create vector with nforest
+b = c("AIC lm 3", "BIC lm 3", "AIC lm 2", "BIC lm 2", "AIC lm 1", "BIC lm 1")
+
+# Link the values with nforest
+names(a) = b
+print(a)
+```
+
+### Previsioni con Model2:
+```{r, message = F}
+#use lasso regression model to predict response value
+new = test
+previsioni_mod3 = predict(model3, newdata = new)
+
+#find SST and SSE
+sst <- sum((test$area - mean(test$area))^2)
+sse <- sum((previsioni_mod3 - test$area)^2)
+
+# Root Mean Squared Error: è una misura dell'errore che compiamo
+sqrt(mean((test$area - previsioni_mod3)^2))
+
+# intervallo di previsione
+predict(model3,new,interval="predict", level=0.95)
+```
+
+### LASSO regression:
+
+```{r, message = F}
+# install.packages("glmnet") # se non è già stato installato
+library(glmnet) 
+
+#define response variable
+y <- train$area
+
+#define matrix of predictor variables (uso solo poche variabili ma potete farlo con tutte da togliere però la risposta area)
+x <- data.matrix(train[, c("month_dec","wind","rain","temp","FFMC","month_aug")])
+
+#perform k-fold cross-validation to find optimal lambda value, la cross-validation è un ottimo modo per non overfittare e trovare il miglior modello
+cv_model <- cv.glmnet(x, y, alpha = 1)
+
+#find optimal lambda value that minimizes test MSE
+best_lambda <- cv_model$lambda.min
+best_lambda
+
+#produce plot of test MSE by lambda value
+plot(cv_model) 
+
+# Fittiamo il modello con il best lambda (penalizzazione)
+
+best_model <- glmnet(x, y, alpha = 1, lambda = best_lambda)
+coef(best_model)
+```
+
+### Previsioni con Lasso:
+```{r, message = F}
+#use lasso regression model to predict response value
+new = data.matrix(test[,c("month_dec","wind","rain","temp","FFMC","month_aug")])
+previsioni = predict(best_model, s = best_lambda, newx = new)
+
+# Root Mean Squared Error (RMSE): è una misura dell'errore che compiamo
+sqrt(mean((test$area - previsioni)^2))
+
+```
+
+Ora potete confrontare modelli diversi con lasso e lm classici, vedete cosa vi dice BIC/AIC e RMSE per decidere quale è il modello ottimale.
+
+## Modello con soglia scelta: logit - glm
+```{r}
+forest$area2 <- as.factor(ifelse(forest$area>0.5,1,0))
+
+# Regole classiche sono 70% training e 30% test (o 80-20 a vostra scelta)
+set.seed(125) # il seme serve per riprodurre le analisi (reproducibilità del codice)
+sample <- sample(c(TRUE, FALSE), nrow(forest), replace=TRUE, prob=c(0.7,0.3))
+train  <- forest[sample, ]
+test   <- forest[!sample, ]
+
+# Modello con una sola variabile:
+model = glm(area2 ~ rain, data = train, family = binomial(link="logit"))
+# o va bene anche: family="binomial"
+summary(model)
+
+# Modello con tutte le variabili:
+model1 = glm(area2 ~ ., data = train, family = binomial(link="logit"))
+summary(model1)
+
+# Removing observations guardando numero dell'osservazione:
+train = train[-c(145,142,258),]
+
+# Rimuovere osservazioni basandoci sui valori delle variabili:
+# train=train[!(train$temp>300),]
+
+# Modello 1 senza outlier:
+model2 = glm(area2 ~ ., data = train, family = binomial(link="logit"))
+summary(model2)
+
+# Modello con variabili scelte da noi (scelte casualmente al momento):
+model3 = glm(area2 ~ month_dec+wind+rain+temp+I(FFMC*month_aug), data = train, family = binomial(link="logit"))
+summary(model3)
+# per un aumento unitario di variabile_X_modello c'è un aumento del tot% del log dell'odds.
+# per un aumento unitario di variabile_X_modello c'è un aumento di exp(valore) = valore_new volte dell'odds. ES. Se P(Y=1) = 0.5, P(Y=1)/P(Y=0) passa da 1 a valore_new 
+# (Il vecchio odds và moltiplicato per exp(beta) )
+
+#use lasso regression model to predict response value
+new = test
+previsioni_mod3 = predict(model3, newdata = new, type="response")
+# la previsione è la probabilità di essere 1!
+
+prev <- ifelse(previsioni_mod3 > 0.5,"1","0")
+
+prev<- as.factor(as.vector(prev))
+
+# Questa tabella mostra previsioni vs valore reale, è chiamata: confusionMatrix
+table(prev, test$area2)
+
+cm <- table(prev, test$area2)
+
+# Indicatori per vedere la bontà del modello:
+accuracy <- sum(cm[1], cm[4]) / sum(cm[1:4])
+precision <- cm[4] / sum(cm[4], cm[2])
+sensitivity <- cm[4] / sum(cm[4], cm[3])
+fscore <- (2 * (sensitivity * precision))/(sensitivity + precision)
+specificity <- cm[1] / sum(cm[1], cm[2])
+
+# install.packages("pROC")
+library(pROC)
+roc_object <- roc( as.numeric(test$area2), as.numeric(prev))
+plot(roc_object)
+# calculate area under curve
+auc(roc_object)
 ```
