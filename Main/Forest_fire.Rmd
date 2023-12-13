@@ -3,20 +3,20 @@ title: "Forest Fires"
 author: "Andrei Petrisor, Antonio Radu, Lorenzo Medici, Andrea Rusconi"
 date: "2023-12-01"
 output:
-  pdf_document:
-    toc: true
-    number_sections: true
-    fig_width: 7
-    fig_height: 6
-    fig_caption: true
-    
-  fontsize: 11pt
-  geometry: margin=1in
   
   html_document:
     theme: cerulean
     toc: yes
     toc_float: yes
+  fontsize: 11pt
+  geometry: margin=1in
+  pdf_document:
+    
+    toc: true
+    number_sections: true
+    fig_width: 7
+    fig_height: 6
+    fig_caption: true
   word_document:
     toc: yes
 editor_options:
@@ -37,6 +37,7 @@ knitr::opts_chunk$set(echo = TRUE)
 h1{color:#1e90ff;}
 
 h2{color:blue;}
+
 ```
 \newpage
 
@@ -81,7 +82,7 @@ Il dataset è composto dalle seguenti rilevazioni:
 # Carichiamo il dataset in formato .csv
 # Importante: bisogna specificare la directory dove il file è salvato.
 
-forest <- read.csv("C:/Forest-Fires/Dataset&Documentation/forestfires.csv")
+forest <- read.csv("C:/Users/main/Desktop/Forest-Fires/Dataset&Documentation/forestfires.csv")
 
 # Vediamo il nome delle variabili:
 
@@ -112,38 +113,51 @@ table(Months, Days)
 
 ## Histogrammi area bruciata
 
-```{r, figures-side1, fig.show="hold", out.width="50%", echo=F, message=F}
+```{r, figures-side1, fig.show="hold", out.width="50%",echo=F, message=F}
 # La variabile risposta è "area", studiamola più nello specifico:
 hist(forest$area, col = "red", breaks=15, main = "Burned area in Hectars")
 # Histogramma di prima considerato tramite il logaritmo
 hist((log(forest$area+1)), col = "red", breaks=15, main = "Ln transform")
-summary(forest$area)
-
 ```
-Si evidenzia che il dataset ha il 48% dei valori che valgono 0
+Come possiamo vedere dall'istogramma(sin) i dati sono assimetrici verso lo zero, possiamo percio valutare i dati 
+facendo la trasformata grazie al logaritmo, cosifacendo otteniamo un grafico più preciso.
+```{r}
+summary(forest$area)
+```
+Facendo il summary otteniamo i valori di: min, max, media, mediana, possiamo considerare i nostri dati molto vicini allo zero.
+
 ```{r, echo=F, message=F}
 sum(forest$area==0)/length(forest$area) # circa 48% sono 0
 ```
+Si evidenzia che il dataset ha il 48% dei valori che valgono 0.
 
 ## Grafici densità area bruciata
 
-```{r, figures-side2, fig.show="hold", out.width="50%", echo=F, message=F}
+```{r, figures-side3, fig.show="hold", out.width="50%", echo=F, message=F}
 # Vediamo meglio il grafico della densità della variabile:
-plot(density(forest$area), col="blue")
+plot(density(forest$area), col="blue",main = "Densità area")
 # E' molto asimmetrica verso lo 0, proviamo a farne una trasformata:
-plot(density(log(forest$area)), col="blue")
+plot(density(log(forest$area)), col="blue",main = "Ln Densità area")
 ```
+Dobbiamo tenere in considerazione del numero di zeri presenti per considerare un andamento normale, visto che log(0)= -inf
 
 ```{r, echo=F, message=F}
 # Dobbiamo però tener conto del numero di 0 presenti: log(0) = -Inf, quindi
 forest$area <- log(forest$area+1)
 summary(forest$area)
+```
+come possiamo vedere la mediana e la media sono diminuite.
 
+```{r echo=F, message=F,fig.show="hold", out.width="50%", echo=F, message=F}
 # Correlazione tra variabili (quantitative):
 library(corrplot)
 M <- cor(as.matrix(forest[,-c(1,2)])) # correlation matrix
 corrplot(M, method = 'number')
+```
 
+prova
+
+```{r, figures-side4, fig.show="hold", out.width="50%", echo=F, message=F}
 # OPZIONALE (non dà punti extra):
 # Siccome i mesi e giorni sono variabili qualitative con più livelli, R automaticamente splitta in livelli le variabili usando il modello lineare o lineare generalizzato.
 # Proviamo a farlo noi con una funzione implementata in R:
