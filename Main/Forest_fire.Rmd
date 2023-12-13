@@ -87,8 +87,8 @@ forest <- forest[,-c(1:2)]
 #head(forest)
 
 # Dato che month e day vengono considerate come character e non factor le trasformiamo:
-forest$month <- factor(forest$month)
-forest$day <- factor(forest$day)
+forest$month <- as.factor(forest$month)
+forest$day <- as.factor(forest$day)
 
 # Vediamo un pochino meglio il dataset ora:
 # summary(forest)
