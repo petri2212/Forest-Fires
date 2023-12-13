@@ -9,23 +9,27 @@ output:
     toc_float: yes
   pdf_document:
     toc: yes
+  word_document:
+    toc: yes
 editor_options:
   markdown:
     wrap: 72
 ---
+```{r, include=FALSE}
+options(tinytex.verbose = TRUE)
+```
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{css}
+```{css echo=F, message=F}
 .columns{display:flex;}
 h1{color:#1e90ff;}
 
-h2{color:green;}
+h2{color:blue;}
 ```
 
-## Forest fire
 
 Questo dataset è pubblico e a disposizione per la ricerca. I dettagli
 sul dataset possono essere trovati in Cortez e Morais (2007). Il dataset
@@ -61,46 +65,53 @@ dicembre, Guimaraes, Por- tugal, pp. 512-523, 2007. APPIA, ISBN-13
 978-989-95618-0-9. 18-0-9. Disponibile a:
 <http://www3.dsi.uminho.pt/pcortez/fires.pdf>
 
+Il dataset è composto dalle seguenti rilevazioni:
 ```{r, echo=F, message=F}
 # Carichiamo il dataset in formato .csv
 # Importante: bisogna specificare la directory dove il file è salvato.
 
-forest <- read.csv("C:/Users/main/Desktop/Forest-Fires/Dataset&Documentation/forestfires.csv")
+forest <- read.csv("C:/Forest-Fires/Dataset&Documentation/forestfires.csv")
 
 # Vediamo il nome delle variabili:
-colnames(forest)
 
 # Il comando 'summary' ci consente di vedere un riassunto delle variabili del dataset (min, max, etc.)
-summary(forest)
+# summary(forest)
 
 # Vediamo se ci sono valori mancanti nel dataset:
-sum(is.na(forest))
+#sum(is.na(forest))
 
 # Consiglio di rimuovere X e Y (le coordinate) dal set di variabili dipendenti in uso:
 forest <- forest[,-c(1:2)]
 
 # Vediamo le prime 6 osservazioni che compongono il dataset:
-head(forest)
+#head(forest)
 
 # Dato che month e day vengono considerate come character e non factor le trasformiamo:
 forest$month <- as.factor(forest$month)
 forest$day <- as.factor(forest$day)
 
 # Vediamo un pochino meglio il dataset ora:
-summary(forest)
-table(forest$month)
-table(forest$day)
+# summary(forest)
+# table(forest$month)
+# table(forest$day)
 table(forest$month, forest$day)
 
 # La variabile risposta è "area", studiamola più nello specifico:
-hist(forest$area, col = "red")
+hist(forest$area, col = "red", breaks=15, main = "Burned area in Hectars")
+# Histogramma di prima considerato tramite il logaritmo
+hist((log(forest$area+1)), col = "red", breaks=15, main = "Ln transform")
 summary(forest$area)
+```
+Si evidenzia che il dataset ha il 48% dei valori che valgono 0
+```{r, echo=F, message=F}
 sum(forest$area==0)/length(forest$area) # circa 48% sono 0
+```
 
+```{r, echo=F, message=F}
 # Vediamo meglio il grafico della densità della variabile:
 plot(density(forest$area), col="blue")
 # E' molto asimmetrica verso lo 0, proviamo a farne una trasformata:
-plot(density(log(forest$area)), col="green")
+plot(density(log(forest$area)), col="blue")
 
 # Dobbiamo però tener conto del numero di 0 presenti: log(0) = -Inf, quindi
 forest$area <- log(forest$area+1)
