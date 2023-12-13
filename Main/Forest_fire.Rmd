@@ -87,8 +87,8 @@ forest <- forest[,-c(1:2)]
 #head(forest)
 
 # Dato che month e day vengono considerate come character e non factor le trasformiamo:
-forest$month <- as.factor(forest$month)
-forest$day <- as.factor(forest$day)
+forest$month <- factor(forest$month)
+forest$day <- factor(forest$day)
 
 # Vediamo un pochino meglio il dataset ora:
 # summary(forest)
@@ -136,7 +136,7 @@ boxplot(forest$area ~ forest$day, col=rainbow(7))
 # cosa succede a Dicembre?
 boxplot(forest$area ~ forest$month, col=rainbow(12)) 
 ```
-
+##Testing
 ```{r, message = F}
 # si divide il dataset in train e test (validation) così che si fitta il modello sul train e si guarda la capacità predittiva su nuovi dati, questo serve per evitare di over-fittare i dati di train e fare un modello che si adatta solo ai dati visti dal modello:
 
