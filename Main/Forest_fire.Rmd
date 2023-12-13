@@ -3,17 +3,26 @@ title: "Forest Fires"
 author: "Andrei Petrisor, Antonio Radu, Lorenzo Medici, Andrea Rusconi"
 date: "2023-12-01"
 output:
+  pdf_document:
+    toc: true
+    number_sections: true
+    fig_width: 7
+    fig_height: 6
+    fig_caption: true
+    
+  fontsize: 11pt
+  geometry: margin=1in
+  
   html_document:
     theme: cerulean
     toc: yes
     toc_float: yes
-  pdf_document:
-    toc: yes
   word_document:
     toc: yes
 editor_options:
   markdown:
     wrap: 72
+    title: "test"
 ---
 ```{r, include=FALSE}
 options(tinytex.verbose = TRUE)
@@ -29,7 +38,9 @@ h1{color:#1e90ff;}
 
 h2{color:blue;}
 ```
+\newpage
 
+# Dataset
 
 Questo dataset è pubblico e a disposizione per la ricerca. I dettagli
 sul dataset possono essere trovati in Cortez e Morais (2007). Il dataset
@@ -97,7 +108,11 @@ forest$day <- as.factor(forest$day)
 # table(forest$day)
 
 table(Months, Days)
+```
 
+## Histogrammi area bruciata
+
+```{r, figures-side1, fig.show="hold", out.width="50%", echo=F, message=F}
 # La variabile risposta è "area", studiamola più nello specifico:
 hist(forest$area, col = "red", breaks=15, main = "Burned area in Hectars")
 # Histogramma di prima considerato tramite il logaritmo
@@ -110,12 +125,16 @@ Si evidenzia che il dataset ha il 48% dei valori che valgono 0
 sum(forest$area==0)/length(forest$area) # circa 48% sono 0
 ```
 
-```{r, echo=F, message=F}
+## Grafici densità area bruciata
+
+```{r, figures-side2, fig.show="hold", out.width="50%", echo=F, message=F}
 # Vediamo meglio il grafico della densità della variabile:
 plot(density(forest$area), col="blue")
 # E' molto asimmetrica verso lo 0, proviamo a farne una trasformata:
 plot(density(log(forest$area)), col="blue")
+```
 
+```{r, echo=F, message=F}
 # Dobbiamo però tener conto del numero di 0 presenti: log(0) = -Inf, quindi
 forest$area <- log(forest$area+1)
 summary(forest$area)
@@ -140,7 +159,7 @@ boxplot(forest$area ~ forest$day, col=rainbow(7))
 boxplot(forest$area ~ forest$month, col=rainbow(12)) 
 ```
 
-## Testing
+# Testing
 
 ```{r, message = F}
 # si divide il dataset in train e test (validation) così che si fitta il modello sul train e si guarda la capacità predittiva su nuovi dati, questo serve per evitare di over-fittare i dati di train e fare un modello che si adatta solo ai dati visti dal modello:
@@ -192,7 +211,7 @@ anova(model3)
 
 ```
 
-### Confronto tra modelli:
+## Confronto tra modelli:
 
 ```{r, message = F}
 # Create vector with values
@@ -208,7 +227,7 @@ names(a) = b
 print(a)
 ```
 
-### Previsioni con Model2:
+## Previsioni con Model2:
 ```{r, message = F}
 #use lasso regression model to predict response value
 new = test
@@ -225,7 +244,7 @@ sqrt(mean((test$area - previsioni_mod3)^2))
 predict(model3,new,interval="predict", level=0.95)
 ```
 
-### LASSO regression:
+## LASSO regression:
 
 ```{r, message = F}
 # install.packages("glmnet") # se non è già stato installato
@@ -253,7 +272,7 @@ best_model <- glmnet(x, y, alpha = 1, lambda = best_lambda)
 coef(best_model)
 ```
 
-### Previsioni con Lasso:
+## Previsioni con Lasso:
 ```{r, message = F}
 #use lasso regression model to predict response value
 new = data.matrix(test[,c("month_dec","wind","rain","temp","FFMC","month_aug")])
