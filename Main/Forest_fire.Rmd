@@ -87,19 +87,23 @@ forest <- forest[,-c(1:2)]
 #head(forest)
 
 # Dato che month e day vengono considerate come character e non factor le trasformiamo:
-forest$month <- factor(forest$month, levels = c('jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dic'))
-forest$day <- factor(forest$day, levels = c('mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'))
+Months <- factor(forest$month, levels = c('jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dic'))
+Days <- factor(forest$day, levels = c('mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'))
+forest$month <- as.factor(forest$month)
+forest$day <- as.factor(forest$day)
 # Vediamo un pochino meglio il dataset ora:
 # summary(forest)
 # table(forest$month)
 # table(forest$day)
-table(forest$month, forest$day)
+
+table(Months, Days)
 
 # La variabile risposta è "area", studiamola più nello specifico:
 hist(forest$area, col = "red", breaks=15, main = "Burned area in Hectars")
 # Histogramma di prima considerato tramite il logaritmo
 hist((log(forest$area+1)), col = "red", breaks=15, main = "Ln transform")
 summary(forest$area)
+
 ```
 Si evidenzia che il dataset ha il 48% dei valori che valgono 0
 ```{r, echo=F, message=F}
@@ -135,7 +139,9 @@ boxplot(forest$area ~ forest$day, col=rainbow(7))
 # cosa succede a Dicembre?
 boxplot(forest$area ~ forest$month, col=rainbow(12)) 
 ```
-##Testing
+
+## Testing
+
 ```{r, message = F}
 # si divide il dataset in train e test (validation) così che si fitta il modello sul train e si guarda la capacità predittiva su nuovi dati, questo serve per evitare di over-fittare i dati di train e fare un modello che si adatta solo ai dati visti dal modello:
 
