@@ -70,7 +70,7 @@ Il dataset è composto dalle seguenti rilevazioni:
 # Carichiamo il dataset in formato .csv
 # Importante: bisogna specificare la directory dove il file è salvato.
 
-forest <- read.csv("C:/Forest-Fires/Dataset&Documentation/forestfires.csv")
+forest <- read.csv("C:/Users/radut/Documents/Forest-Fires/Dataset&Documentation/forestfires.csv")
 
 # Vediamo il nome delle variabili:
 
@@ -87,8 +87,8 @@ forest <- forest[,-c(1:2)]
 #head(forest)
 
 # Dato che month e day vengono considerate come character e non factor le trasformiamo:
-forest$month <- as.factor(forest$month)
-forest$day <- as.factor(forest$day)
+forest$month <- factor(forest$month, levels = c('jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dic'))
+forest$day <- factor(forest$day, levels = c('mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'))
 
 # Vediamo un pochino meglio il dataset ora:
 # summary(forest)
