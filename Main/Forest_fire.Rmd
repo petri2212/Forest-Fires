@@ -4,12 +4,6 @@ author: "Andrei Petrisor, Antonio Radu, Lorenzo Medici, Andrea Rusconi"
 date: "2023-12-01"
 output:
   
-  html_document:
-    theme: cerulean
-    toc: yes
-    toc_float: yes
-  fontsize: 11pt
-  geometry: margin=1in
   pdf_document:
     
     toc: true
@@ -17,6 +11,12 @@ output:
     fig_width: 7
     fig_height: 6
     fig_caption: true
+  fontsize: 11pt
+  geometry: margin=1in
+  html_document:
+    theme: cerulean
+    toc: yes
+    toc_float: yes
   word_document:
     toc: yes
 editor_options:
@@ -25,6 +25,7 @@ editor_options:
     title: "test"
 ---
 ```{r, include=FALSE}
+#mi serve per creare pdf
 options(tinytex.verbose = TRUE)
 ```
 
@@ -82,7 +83,7 @@ Il dataset è composto dalle seguenti rilevazioni:
 # Carichiamo il dataset in formato .csv
 # Importante: bisogna specificare la directory dove il file è salvato.
 
-forest <- read.csv("C:/Users/loren/Documents/Forest-Fires/Dataset&Documentation/forestfires.csv")
+forest <- read.csv("C:/Users/main/Desktop/Forest-Fires/Dataset&Documentation/forestfires.csv")
 
 # Vediamo il nome delle variabili:
 
@@ -148,16 +149,8 @@ summary(forest$area)
 ```
 come possiamo vedere la mediana e la media sono diminuite.
 
-```{r echo=F, message=F,fig.show="hold", out.width="50%", echo=F, message=F}
-# Correlazione tra variabili (quantitative):
-library(corrplot)
-M <- cor(as.matrix(forest[,-c(1,2)])) # correlation matrix
-corrplot(M, method = 'number')
-```
-
-prova
-
 ```{r, figures-side4, fig.show="hold", out.width="50%", echo=F, message=F}
+# Correlazione tra variabili (quantitative):
 # OPZIONALE (non dà punti extra):
 # Siccome i mesi e giorni sono variabili qualitative con più livelli, R automaticamente splitta in livelli le variabili usando il modello lineare o lineare generalizzato.
 # Proviamo a farlo noi con una funzione implementata in R:
@@ -165,13 +158,30 @@ prova
 # summary(forest)
 
 # Visualizzazione delle variabili:
-boxplot(forest[,-c(1,2)], main="variables", col=rainbow(9))
-
+boxplot(forest[,-c(1,2)], main="variables", col=rainbow(9), line = "box")
+mtext("Fig.1", side=4, line=1)
 # c'è differenza nei giorni?
-boxplot(forest$area ~ forest$day, xlab = "area", ylab = "day", main="week", col=rainbow(7))
+boxplot(forest$area ~ Days, xlab = "day", ylab = "area", main="week", col=rainbow(7))
+mtext("Fig.2", side=4, line=1)
 # cosa succede a Dicembre?
-boxplot(forest$area ~ forest$month, xlab = "area", ylab = "mounth", main="year", col=rainbow(12)) 
+boxplot(forest$area ~ Months, xlab = "mounth", ylab = "area", main="year", col=rainbow(12))
+mtext("Fig.3", side=4, line=1)
+
+library(corrplot)
+M <- cor(as.matrix(forest[,-c(1,2)])) # correlation matrix
+corrplot(M, method = 'number')
+mtext("Fig.4", side=4, line=1)#side  1 = sotto, 2 = sinistra, 3 = sopra, 4 = destra.
+#line da 1,-1,-2 ecc si sposta verso il centro
 ```
+-Come possiamo vedere da questo correlation plot(fig.4) le variabili che sono correlate positivamente di più
+sono: DC con DMC, ISI e FFMC, temp e DC. Le variabili correlate negativamente di più sono, invece: RH e temp.
+
+-Dal box plot delle variabili(fig.1) possiamo determinare che le mediane di quasi tutte le variabili sono più o meno simili quindi ci sono poche differenze,inoltre possiamo notare come in tutte le variabili ci siano degli outliers sia al minimo che al massimo.La variabile DMC,invece,presenta dei baffi più lunghi il che implica che tale variabile ha valori più incoerenti rispetto alle altre, la 
+mediane lontana da tutte le altre e spostata molto verso il terzo quartile.
+
+-Dal box plot dei giorni della settimana(fig.2) possiamo vedere come le mediane sono simili tra di loro come anche i baffi, questo dimostra come i giorni della settimana hanno tutti valori coerenti tra di loro.
+
+-Dal box plot dei mesi dell'anno(fig.3) notiamo come il mese di dicembre e quello di maggio siano quelli più incoerenti rispetto agli altri mesi. Il mese di agosto presenta molti più outliers rispetto agli altri mesi.
 
 # Testing
 
