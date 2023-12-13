@@ -115,9 +115,9 @@ table(Months, Days)
 
 ```{r, figures-side1, fig.show="hold", out.width="50%",echo=F, message=F}
 # La variabile risposta è "area", studiamola più nello specifico:
-hist(forest$area, col = "red", breaks=15, main = "Burned area in Hectars")
+hist(forest$area, col = "red", breaks=15, ylab = "Frequency", xlab = "Hectars", main = "Burned area in Hectars")
 # Histogramma di prima considerato tramite il logaritmo
-hist((log(forest$area+1)), col = "red", breaks=15, main = "Ln transform")
+hist((log(forest$area+1)), col = "red", breaks=15, ylab = "Frequency", xlab = "Hectars", main = "Ln transform")
 ```
 Come possiamo vedere dall'istogramma(sin) i dati sono assimetrici verso lo zero, possiamo percio valutare i dati 
 facendo la trasformata grazie al logaritmo, cosifacendo otteniamo un grafico più preciso.
