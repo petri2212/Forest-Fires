@@ -82,7 +82,7 @@ Il dataset è composto dalle seguenti rilevazioni:
 # Carichiamo il dataset in formato .csv
 # Importante: bisogna specificare la directory dove il file è salvato.
 
-forest <- read.csv("C:/Users/main/Desktop/Forest-Fires/Dataset&Documentation/forestfires.csv")
+forest <- read.csv("C:/Users/loren/Documents/Forest-Fires/Dataset&Documentation/forestfires.csv")
 
 # Vediamo il nome delle variabili:
 
@@ -165,12 +165,12 @@ prova
 # summary(forest)
 
 # Visualizzazione delle variabili:
-boxplot(forest[,-c(1,2)], col=rainbow(9))
+boxplot(forest[,-c(1,2)], main="variables", col=rainbow(9))
 
 # c'è differenza nei giorni?
-boxplot(forest$area ~ forest$day, col=rainbow(7))
+boxplot(forest$area ~ forest$day, xlab = "area", ylab = "day", main="week", col=rainbow(7))
 # cosa succede a Dicembre?
-boxplot(forest$area ~ forest$month, col=rainbow(12)) 
+boxplot(forest$area ~ forest$month, xlab = "area", ylab = "mounth", main="year", col=rainbow(12)) 
 ```
 
 # Testing
