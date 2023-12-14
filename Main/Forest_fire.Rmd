@@ -198,12 +198,12 @@ train  <- forest[sample, ]
 test   <- forest[!sample, ]
 
 # Modello con una sola variabile:
-model = lm(area ~ rain, data = train)
+# model = lm(area ~ rain, data = train)
 
-summary(model)
+# summary(model)
 
-# Modello con tutte le variabili:
-model1 = lm(area ~ ., data = train)
+# Modello con poche:
+model1 = lm(area ~ month_aug+wind+temp+DMC, data = train)
 summary(model1)
 
 # Diagnostic plot del modello:
@@ -217,21 +217,23 @@ library(olsrr)
 ols_plot_resid_lev(model1)
 
 # Removing observations guardando numero dell'osservazione:
-train = train[-c(480,380,105),]
+rownames(train)=NULL
+train = train[-c(416),-c(277)]
+
 
 # Rimuovere osservazioni basandoci sui valori delle variabili:
 # train=train[!(train$temp>300),]
 
 # Modello 1 senza outlier:
-model2 = lm(area ~ ., data = train)
+model2 = lm(area ~ month_aug+wind+temp+DMC, data = train)
 summary(model2)
 
 # Modello con variabili scelte da noi (scelte casualmente al momento):
-model3 = lm(area ~ month_dec+wind+rain+temp+I(FFMC*month_aug), data = train)
-summary(model3)
+#model3 = lm(area ~ month_dec+wind+rain+temp+I(FFMC*month_aug), data = train)
+#summary(model3)
 
 # Test ANOVA
-anova(model3)
+anova(model2)
 
 ```
 
@@ -255,22 +257,23 @@ print(a)
 ```{r, message = F}
 #use lasso regression model to predict response value
 new = test
-previsioni_mod3 = predict(model3, newdata = new)
+previsioni_mod3 = predict(model3, newdata = new)#previsione puntuale
 
 #find SST and SSE
 sst <- sum((test$area - mean(test$area))^2)
 sse <- sum((previsioni_mod3 - test$area)^2)
 
 # Root Mean Squared Error: è una misura dell'errore che compiamo
-sqrt(mean((test$area - previsioni_mod3)^2))
+sqrt(mean((test$area - previsioni_mod3)^2))#--
 
 # intervallo di previsione
-predict(model3,new,interval="predict", level=0.95)
+predict(model3,new,interval="predict", level=0.95)#intervallo di previsione
 ```
 
 ## LASSO regression:
 
 ```{r, message = F}
+#penalizza le covariate,avra una parte classica piu un errore
 # install.packages("glmnet") # se non è già stato installato
 library(glmnet) 
 
@@ -285,7 +288,7 @@ cv_model <- cv.glmnet(x, y, alpha = 1)
 
 #find optimal lambda value that minimizes test MSE
 best_lambda <- cv_model$lambda.min
-best_lambda
+best_lambda#miglior lambda per penalizzare
 
 #produce plot of test MSE by lambda value
 plot(cv_model) 
@@ -303,7 +306,7 @@ new = data.matrix(test[,c("month_dec","wind","rain","temp","FFMC","month_aug")])
 previsioni = predict(best_model, s = best_lambda, newx = new)
 
 # Root Mean Squared Error (RMSE): è una misura dell'errore che compiamo
-sqrt(mean((test$area - previsioni)^2))
+sqrt(mean((test$area - previsioni)^2))#errore minimo
 
 ```
 
