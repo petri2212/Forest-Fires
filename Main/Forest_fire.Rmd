@@ -88,14 +88,14 @@ forest <- read.csv("C:/Forest-Fires/Dataset&Documentation/forestfires.csv")
 # Vediamo il nome delle variabili:
 
 # Il comando 'summary' ci consente di vedere un riassunto delle variabili del dataset (min, max, etc.)
-summary(forest)
+#summary(forest)
 
 # Vediamo se ci sono valori mancanti nel dataset:
 #sum(is.na(forest))
 
 # Consiglio di rimuovere X e Y (le coordinate) dal set di variabili dipendenti in uso:
 forest <- forest[,-c(1:2)]
-summary(forest)
+#summary(forest)
 # Vediamo le prime 6 osservazioni che compongono il dataset:
 #head(forest)
 
@@ -118,7 +118,7 @@ table(Months, Days)
 # La variabile risposta è "area", studiamola più nello specifico:
 hist(forest$area, col = "red", breaks=15, ylab = "Frequency", xlab = "Hectars", main = "Burned area in Hectars")
 # Histogramma di prima considerato tramite il logaritmo
-hist((log(forest$area+1)), col = "red", breaks=15, ylab = "Frequency", xlab = "Hectars", main = "Ln transform")
+hist((log(forest$area)), col = "red", breaks=15, ylab = "Frequency", xlab = "Hectars", main = "Ln transform")
 ```
 Come possiamo vedere dall'istogramma(sin) i dati sono assimetrici verso lo zero, possiamo percio valutare i dati 
 facendo la trasformata grazie al logaritmo, cosifacendo otteniamo un grafico più preciso.
@@ -186,16 +186,17 @@ mediane lontana da tutte le altre e spostata molto verso il terzo quartile.
 
 Per la fase di testing prendiamo in considerazione solamente il mese di agosto, per poter spiegare come varia l'area bruciata in relazione alle altre variabili. Dividiamo la fase di Testing in: train e test, con il train al 70% e il test al 30%.
 Questo è il nostro nuovo dataset:
-```{r, message=F}
+
+```{r, echo=F, message=F}
 forest_subset <- forest[which(forest$month=="aug"),]
 forest_subset <- forest_subset[,-c(1)]#elimino colonna month dal dataset
-summary(forest_subset)
-
+#summary(forest_subset)
 ```
+Proviamo a fare un modello lineare con i dati dai mesi di agosto.
 
-```{r,figures-side5, fig.show="hold", out.width="50%", echo=F, message=F}
+```{r,echo=F, message=F}
 # Optional:
-# forest <- fastDummies::dummy_cols(forest, remove_first_dummy = TRUE)[-c(1,2)]
+#forest <- fastDummies::dummy_cols(forest, remove_first_dummy = TRUE)[-c(1,2)]
 # Regole classiche sono 70% training e 30% test (o 80-20 a vostra scelta)
 set.seed(125) # il seme serve per riprodurre le analisi (reproducibilità del codice)
 sample <- sample(c(TRUE, FALSE), nrow(forest_subset ), replace=TRUE, prob=c(0.7,0.3))
@@ -208,43 +209,60 @@ test   <- forest_subset [!sample, ]
 # summary(model)
 
 # Modello con poche:
-model1 = lm(area ~ wind+temp+DMC, data = train)
+model1 = lm(area ~ rain+RH+temp+FFMC+DMC, data = train)
 summary(model1)
+
+```
+
+Come possiamo vedere il nostro modello non performa benissimo, con un 4% come r^2 il modello ha un grande margine di errore. Tra le varie covariate scelte notiamo come la temperatura abbia il valore piu grande, all'aumentare unitario dell'area, la temperatura media aumenta di 0.08. Proviamo a vedere se ci sono degli Outliers(valori estremi) nel modello.
+
+\newpage
+
+```{r,figures-side5, fig.show="hold", out.width="50%", echo=F, message=F}
 
 # Diagnostic plot del modello:
 par(mfrow=c(2,2)) # finestra grafica 2x2
 plot(model1)
 par(mfrow=c(1,1)) # riportiamo ai valori di default
 
+mtext("Fig.1", side=4, line=1)#side  1 = sotto, 2 = sinistra, 3 = sopra, 4 = destra.
+
+# Rimuovere osservazioni basandoci sui valori delle variabili:
+# train=train[!(train$temp>300),]
 # rimuovere outlier:
 # install.packages("olsrr")
 library(olsrr)
 ols_plot_resid_lev(model1)
 
+#mtext("Fig.2", side=4, line=1)#side  1 = sotto, 2 = sinistra, 3 = sopra, 4 = destra.
+```
+
+Possiamo vedere come nel grafici (Fig.1), un numero considerevole di osservazioni non segue l'andamento desiderato, poniamo maggiore attenzione sul grafico Q-Q Res. dove possiamo vedere che i vari valori alle code tendono a spostarsi di molto, l'andamento non tende per niente alla normale. Per quanto riguarda il grafico a destra possiamo notare come alcune rilevazioni siano parecchio <lontane> rispetto alle altre, poniamo attenzione soprattuto a quelle che sono Outlier&Leverage e le rimuoviamo. 
+
+
+```{r,echo=F, message=F}
 # Removing observations guardando numero dell'osservazione:
-rownames(train)=NULL
-train = train[-c(416),-c(277)]
-
-
-# Rimuovere osservazioni basandoci sui valori delle variabili:
-# train=train[!(train$temp>300),]
-
+#rownames(train) per vedere il la posizione dei valori di train
+train = train[-c(76,78,47,3,114,45),]#attenzione i numeri si riferiscono alla posizione dell'array degli outlier
+#416 421 228 13 500 212
+#76  78  47  3  114 45
 # Modello 1 senza outlier:
-model2 = lm(area ~ wind+temp+DMC, data = train)
+model2 = lm(area ~ rain+RH+temp+FFMC+DMC, data = train)
 summary(model2)
-
 # Modello con variabili scelte da noi (scelte casualmente al momento):
-model3 = lm(area ~., data = train)
+model3 = lm(area ~ ., data = train)
 #summary(model3)
 
 # Test ANOVA
-anova(model2)
+#anova(model3)
 
 ```
 
+Possiamo vedere un leggero miglioramento anche se non di tanto, possiamo vedere come l'r^2 sia aumentato del 7% rendendo il modello un minimo piu preciso. Notiamo anche come la covariata piu significativa sia la temperatura , quindi all'aumentare unitario dell'area, la temperatura media aumenta di 0.12. I coefficienti associati alle variabili pioggia, FFMC, DMC non sono significativi, quindi supponiamo non influiscano sull'area, passando non avere la pioggia ad averla, a parità di temperatura , l'area diminuisce di 0.87.
+
 ## Confronto tra modelli:
 
-```{r, message = F}
+```{r, echo=F,message = F}
 # Create vector with values
 a = c(AIC(model3), BIC(model3), AIC(model2), BIC(model2), AIC(model1), BIC(model1))
 
@@ -315,4 +333,4 @@ sqrt(mean((test$area - previsioni)^2))#errore minimo
 
 ```
 
-Ora potete confrontare modelli diversi con lasso e lm classici, vedete cosa vi dice BIC/AIC e RMSE per decidere quale è il modello ottimale.
+Come ppossiamo vedere le previsioni con la Lasso sono migliori rispetto a .......(non so come si chiama l'altro)
