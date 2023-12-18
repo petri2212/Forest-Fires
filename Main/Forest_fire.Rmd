@@ -4,6 +4,12 @@ author: "Andrei Petrisor, Antonio Radu, Lorenzo Medici, Andrea Rusconi"
 date: "2023-12-01"
 output:
   
+  html_document:
+    theme: cerulean
+    toc: yes
+    toc_float: yes
+  fontsize: 11pt
+  geometry: margin=1in
   pdf_document:
     
     toc: true
@@ -11,12 +17,6 @@ output:
     fig_width: 7
     fig_height: 6
     fig_caption: true
-  fontsize: 11pt
-  geometry: margin=1in
-  html_document:
-    theme: cerulean
-    toc: yes
-    toc_float: yes
   word_document:
     toc: yes
 editor_options:
@@ -52,8 +52,8 @@ sul dataset possono essere trovati in Cortez e Morais (2007). Il dataset
     Montesinho: da 1 a 9
 2.  Y coordinata spaziale dell'asse y all'interno della mappa del parco
     Montesinho: da 2 a 9
-3.  mese: mese dell'anno: da "gen" a "dic"
-4.  giorno della settimana: da "lunedì" a "domenica"
+3.  mese dell'anno: da "jan" a "dec"
+4.  giorno della settimana: da "mon" a "sun"
 5.  Indice FFMC dal sistema FWI: da 18,7 a 96,20
 6.  Indice DMC dal sistema FWI: da 1,1 a 291,3
 7.  Indice DC dal sistema FWI: da 7,9 a 860,6
@@ -64,6 +64,11 @@ sul dataset possono essere trovati in Cortez e Morais (2007). Il dataset
 12. pioggia in mm/m2: da 0,0 a 6,4
 13. area della superficie bruciata della foresta (in ettari): da 0,00 a
     1090,84.
+
+Il Forest Fire Weather Index (FWI) è il sistema canadese per la classificazione 
+del pericolo di incendio e comprende sei componenti:
+Codice di umidità del combustibile (FFMC), codice di umidità (DMC), 
+codice di siccità (DC), indice di spread iniziale (ISI), indice di accumulo (BUI) e FWI
     
 ## Obiettivo
 
@@ -83,7 +88,7 @@ Il dataset è composto dalle seguenti rilevazioni:
 # Carichiamo il dataset in formato .csv
 # Importante: bisogna specificare la directory dove il file è salvato.
 
-forest <- read.csv("C:/Forest-Fires/Dataset&Documentation/forestfires.csv")
+forest <- read.csv("C:/Users/radut/Documents/Forest-Fires/Dataset&Documentation/forestfires.csv")
 
 # Vediamo il nome delle variabili:
 
