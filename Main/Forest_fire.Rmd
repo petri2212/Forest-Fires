@@ -4,12 +4,6 @@ author: "Andrei Petrisor, Antonio Radu, Lorenzo Medici, Andrea Rusconi"
 date: "2023-12-01"
 output:
   
-  html_document:
-    theme: cerulean
-    toc: yes
-    toc_float: yes
-  fontsize: 11pt
-  geometry: margin=1in
   pdf_document:
     
     toc: true
@@ -17,6 +11,12 @@ output:
     fig_width: 7
     fig_height: 6
     fig_caption: true
+  fontsize: 11pt
+  geometry: margin=1in
+  html_document:
+    theme: cerulean
+    toc: yes
+    toc_float: yes
   word_document:
     toc: yes
 editor_options:
@@ -67,13 +67,13 @@ sul dataset possono essere trovati in Cortez e Morais (2007). Il dataset
 
 Il Forest Fire Weather Index (FWI) è il sistema canadese per la classificazione 
 del pericolo di incendio e comprende sei componenti:
-Codice di umidità del combustibile (FFMC), codice di umidità (DMC), 
-codice di siccità (DC), indice di spread iniziale (ISI), indice di accumulo (BUI) e FWI
+Indice di umidità del combustibile (FFMC), indice di umidità (DMC), 
+indice di siccità (DC), indice di spread iniziale (ISI), indice di accumulo (BUI) e FWI
     
 ## Obiettivo
 
-In questo dataset siamo interessati a modellare l'area bruciata della
-foresta come funzione delle altre variabili.
+In questo dataset siamo interessati a modellare l'area bruciata della foresta come funzione delle altre variabili. Siamo in particolare interessati a rispondere alla domanda: "Concentrandosi sul mese di agosto, come si può spiegare l'area bruciata in funzione delle altre variabili?".
+
 
 Cortez P. e Morais A. "Un approccio di data mining per prevedere gli
 incendi boschivi utilizzando dati meteorologici." In J. Neves, MF Santos
@@ -88,8 +88,7 @@ Il dataset è composto dalle seguenti rilevazioni:
 # Carichiamo il dataset in formato .csv
 # Importante: bisogna specificare la directory dove il file è salvato.
 
-forest <- read.csv("C:/Users/radut/Documents/Forest-Fires/Dataset&Documentation/forestfires.csv")
-
+forest <- read.csv("C:/Forest-Fires/Dataset&Documentation/forestfires.csv")
 # Vediamo il nome delle variabili:
 
 # Il comando 'summary' ci consente di vedere un riassunto delle variabili del dataset (min, max, etc.)
@@ -117,16 +116,19 @@ forest$day <- as.factor(forest$day)
 table(Months, Days)
 ```
 
-## Histogrammi area bruciata
+## Istogrammi area bruciata
 
 ```{r, figures-side1, fig.show="hold", out.width="50%",echo=F, message=F}
 # La variabile risposta è "area", studiamola più nello specifico:
 hist(forest$area, col = "red", breaks=15, ylab = "Frequency", xlab = "Hectars", main = "Burned area in Hectars")
+mtext("Fig.1", side=4, line=1)
 # Histogramma di prima considerato tramite il logaritmo
 hist((log(forest$area)), col = "red", breaks=15, ylab = "Frequency", xlab = "Hectars", main = "Ln transform")
+mtext("Fig.2", side=4, line=1)
 ```
-Come possiamo vedere dall'istogramma(sin) i dati sono assimetrici verso lo zero, possiamo percio valutare i dati 
-facendo la trasformata grazie al logaritmo, cosifacendo otteniamo un grafico più preciso.
+Possiamo vedere dall'istogramma(Fig.1) come i dati sono assimetrici verso lo zero, di conseguenza valutiamo i dati
+facendo la trasformata grazie al logaritmo, cosifacendo otteniamo un grafico più simile ad una normale.
+
 ```{r}
 summary(forest$area)
 ```
@@ -145,7 +147,9 @@ plot(density(forest$area), col="blue",main = "Densità area")
 # E' molto asimmetrica verso lo 0, proviamo a farne una trasformata:
 plot(density(log(forest$area)), col="blue",main = "Ln Densità area")
 ```
-Dobbiamo tenere in considerazione del numero di zeri presenti per considerare un andamento normale, visto che log(0)= -inf
+\newpage
+
+Sembra esserci anche una forte distorsione rispetto ai residui che non sono normalmente distribuiti. Ciò sembra essere dovuto al gran numero di 0 nel database. Quando questi 0 vengono rimossi, possiamo vedere che i residui diventano più normalmente distribuiti.
 
 ```{r, echo=F, message=F}
 # Dobbiamo però tener conto del numero di 0 presenti: log(0) = -Inf, quindi
@@ -180,10 +184,9 @@ mtext("Fig.4", side=4, line=1)#side  1 = sotto, 2 = sinistra, 3 = sopra, 4 = des
 -Come possiamo vedere da questo correlation plot(fig.4) le variabili che sono correlate positivamente di più
 sono: DC con DMC, ISI e FFMC, temp e DC. Le variabili correlate negativamente di più sono, invece: RH e temp.
 
--Dal box plot delle variabili(fig.1) possiamo determinare che le mediane di quasi tutte le variabili sono più o meno simili quindi ci sono poche differenze,inoltre possiamo notare come in tutte le variabili ci siano degli outliers sia al minimo che al massimo.La variabile DMC,invece,presenta dei baffi più lunghi il che implica che tale variabile ha valori più incoerenti rispetto alle altre, la 
-mediane lontana da tutte le altre e spostata molto verso il terzo quartile.
+-Dal box plot delle variabili(fig.1) possiamo determinare che le mediane di quasi tutte le variabili sono più o meno simili quindi ci sono poche differenze,inoltre possiamo notare come in tutte le variabili ci siano degli outliers sia al minimo che al massimo. La variabile DMC, invece, presenta dei baffi più lunghi il che implica che tale variabile ha valori più incoerenti rispetto alle altre, la mediana è lontana da tutte le altre ed è spostata molto verso il terzo quartile.
 
--Dal box plot dei giorni della settimana(fig.2) possiamo vedere come le mediane sono simili tra di loro come anche i baffi, questo dimostra come i giorni della settimana hanno tutti valori coerenti tra di loro.
+-Dal box plot dei giorni della settimana(fig.2) possiamo vedere come le mediane siano simili tra di loro, come anche i baffi, questo dimostra come i giorni della settimana abbiano tutti valori coerenti tra di loro.
 
 -Dal box plot dei mesi dell'anno(fig.3) notiamo come il mese di dicembre e quello di maggio siano quelli più incoerenti rispetto agli altri mesi. Il mese di agosto presenta molti più outliers rispetto agli altri mesi.
 
@@ -197,7 +200,9 @@ forest_subset <- forest[which(forest$month=="aug"),]
 forest_subset <- forest_subset[,-c(1)]#elimino colonna month dal dataset
 #summary(forest_subset)
 ```
-Proviamo a fare un modello lineare con i dati dai mesi di agosto.
+
+Proviamo a fare un modello lineare con i dati del mese di agosto. Le variabili che secondo noi ha piu senso considerare nel modello sono: rain ,RH ,temp, FFMC, e DMC. RH-FFMC-DMC sono degli indici che tengono conto dell'umidità. Nessuno di questi parametri agisce in modo diretto sullo sviluppo dell’incendio, ma sono tutti fattori predisponenti, perciò consideriamo rilevante studiare come influenzano l'area incendiata.
+
 
 ```{r,echo=F, message=F}
 # Optional:
@@ -211,7 +216,7 @@ test   <- forest_subset [!sample, ]
 # Modello con una sola variabile:
 # model = lm(area ~ rain, data = train)
 
-# summary(model)
+#summary(model)
 
 # Modello con poche:
 model1 = lm(area ~ rain+RH+temp+FFMC+DMC, data = train)
@@ -219,7 +224,7 @@ summary(model1)
 
 ```
 
-Come possiamo vedere il nostro modello non performa benissimo, con un 4% come r^2 il modello ha un grande margine di errore. Tra le varie covariate scelte notiamo come la temperatura abbia il valore piu grande, all'aumentare unitario dell'area, la temperatura media aumenta di 0.08. Proviamo a vedere se ci sono degli Outliers(valori estremi) nel modello.
+Come possiamo vedere il nostro modello non performa benissimo, con un 4% come r^2 il modello ha un grande margine di errore. Tra le varie covariate scelte notiamo come la temperatura abbia il valore piu grande, quindi,  all'aumentare unitario dell'area, la temperatura media aumenta di 0.08. Proviamo a vedere se ci sono degli Outliers(valori estremi) nel modello.
 
 \newpage
 
@@ -242,7 +247,7 @@ ols_plot_resid_lev(model1)
 #mtext("Fig.2", side=4, line=1)#side  1 = sotto, 2 = sinistra, 3 = sopra, 4 = destra.
 ```
 
-Possiamo vedere come nel grafici (Fig.1), un numero considerevole di osservazioni non segue l'andamento desiderato, poniamo maggiore attenzione sul grafico Q-Q Res. dove possiamo vedere che i vari valori alle code tendono a spostarsi di molto, l'andamento non tende per niente alla normale. Per quanto riguarda il grafico a destra possiamo notare come alcune rilevazioni siano parecchio <lontane> rispetto alle altre, poniamo attenzione soprattuto a quelle che sono Outlier&Leverage e le rimuoviamo. 
+Possiamo vedere come nel grafici (Fig.1), un numero considerevole di osservazioni non segue l'andamento desiderato, poniamo maggiore attenzione sul grafico Q-Q Res. dove possiamo vedere che i vari valori alle code tendono a spostarsi di molto, l'andamento non tende per niente alla normale. Per quanto riguarda il grafico a destra possiamo notare come alcune rilevazioni siano parecchio "lontane" rispetto alle altre, poniamo attenzione soprattuto a quelle che sono Outlier&Leverage e le rimuoviamo. 
 
 
 ```{r,echo=F, message=F}
@@ -263,9 +268,11 @@ model3 = lm(area ~ ., data = train)
 
 ```
 
-Possiamo vedere un leggero miglioramento anche se non di tanto, possiamo vedere come l'r^2 sia aumentato del 7% rendendo il modello un minimo piu preciso. Notiamo anche come la covariata piu significativa sia la temperatura , quindi all'aumentare unitario dell'area, la temperatura media aumenta di 0.12. I coefficienti associati alle variabili pioggia, FFMC, DMC non sono significativi, quindi supponiamo non influiscano sull'area, passando non avere la pioggia ad averla, a parità di temperatura , l'area diminuisce di 0.87.
+Il modello presenta un leggero miglioramento, l'r^2 aumenta del 7% rendendo il modello un minimo piu preciso. La covariata piu significativa è la temperatura, quindi all'aumentare unitario dell'area, la temperatura media aumenta di 0.12. I coefficienti associati alle variabili rain, FFMC, DMC non sono significativi, quindi supponiamo non influiscano sull'area. Passando da non avere la rain ad averla, a parità di temperatura, l'area diminuisce di 0.87.
 
-## Confronto tra modelli:
+## Confronto tra modelli
+
+Per valutare quale dei 3 modelli (1o modello con variabili scelte da noi, il  2o modello  è uguale al primo, ma senza outliers, il 3o modello presenta tutte le variabili) sia meglio li mettiamo a confronto tramite la tecnica AIC(Akaike information criterion). Consiste in un metodo per la valutazione e il confronto tra modelli statistici. Fornisce una misura della qualità della stima di un modello statistico tenendo conto sia della bontà di adattamento che della complessità del modello. La regola è quella di preferire i modelli con l’AIC più basso.
 
 ```{r, echo=F,message = F}
 # Create vector with values
@@ -280,27 +287,33 @@ b = c("AIC lm 3", "BIC lm 3", "AIC lm 2", "BIC lm 2", "AIC lm 1", "BIC lm 1")
 names(a) = b
 print(a)
 ```
+I risultati ci mostrano come il modello 2 abbia l'AIC piu basso, useremo questo modello per fare le previsioni.
 
-## Previsioni con Model2:
-```{r, message = F}
+## Previsioni puntuale
+
+Per STIMA PUNTUALE DEI PARAMETRI s’intende l’insieme dei metodi inferenziali che permettono di attribuire un valore ad un parametro della popolazione, utilizzando i dati di un campione casuale osservato (x1, x2,…,xn) ed elaborandoli.Per valutare la bontà di uno stimatore è necessario considerare le stime ottenute ripetendo un grande numero di volte il processo impiegato per eseguire una stima.  
+
+```{r, echo=F,message = F}
 #use lasso regression model to predict response value
 new = test
-previsioni_mod3 = predict(model3, newdata = new)#previsione puntuale
+previsioni_mod2 = predict(model2, newdata = new)#previsione puntuale
 
 #find SST and SSE
 sst <- sum((test$area - mean(test$area))^2)
-sse <- sum((previsioni_mod3 - test$area)^2)
+sse <- sum((previsioni_mod2 - test$area)^2)
 
 # Root Mean Squared Error: è una misura dell'errore che compiamo
-sqrt(mean((test$area - previsioni_mod3)^2))#--
+sqrt(mean((test$area - previsioni_mod2)^2))#--
 
 # intervallo di previsione
-predict(model3,new,interval="predict", level=0.95)#intervallo di previsione
+# predict(model3,new,interval="predict", level=0.95)#intervallo di previsione
 ```
 
-## LASSO regression:
+## LASSO regression
 
-```{r, message = F}
+La tecnica LASSO(least absolute shrinkage and selection operator) è un metodo di analisi della regressione che esegue sia la selezione delle variabili sia la regolarizzazione per migliorare l'accuratezza della previsione e l'interpretabilità del modello statistico risultante. Il metodo lasso presuppone che i coefficienti del modello lineare siano sparsi, ossia che pochi di essi siano non nulli. 
+
+```{r,figures-side7, fig.show="hold", out.width="50%", echo=F, message = F}
 #penalizza le covariate,avra una parte classica piu un errore
 # install.packages("glmnet") # se non è già stato installato
 library(glmnet) 
@@ -309,7 +322,7 @@ library(glmnet)
 y <- train$area
 
 #define matrix of predictor variables (uso solo poche variabili ma potete farlo con tutte da togliere però la risposta area)
-x <- data.matrix(train[, c("wind","rain","temp","FFMC")])
+x <- data.matrix(train[, c("RH","rain","temp","FFMC","DMC")])
 
 #perform k-fold cross-validation to find optimal lambda value, la cross-validation è un ottimo modo per non overfittare e trovare il miglior modello
 cv_model <- cv.glmnet(x, y, alpha = 1)
@@ -327,10 +340,12 @@ best_model <- glmnet(x, y, alpha = 1, lambda = best_lambda)
 coef(best_model)
 ```
 
-## Previsioni con Lasso:
+Il grafico dovrebbe assomigliare ad una curva esponenziale, nel nostro caso il mean-squared error assomiglia ad una retta.
+
+## Previsioni con Lasso
 ```{r, message = F}
 #use lasso regression model to predict response value
-new = data.matrix(test[,c("wind","rain","temp","FFMC")])
+new = data.matrix(test[,c("RH","rain","temp","FFMC","DMC")])
 previsioni = predict(best_model, s = best_lambda, newx = new)
 
 # Root Mean Squared Error (RMSE): è una misura dell'errore che compiamo
@@ -338,4 +353,8 @@ sqrt(mean((test$area - previsioni)^2))#errore minimo
 
 ```
 
-Come ppossiamo vedere le previsioni con la Lasso sono migliori rispetto a .......(non so come si chiama l'altro)
+Come possiamo vedere la previsione con la Lasso è migliore rispetto alla previsone puntuale, decidiamo quindi di usare la Lasso regression per prevedere i dati. 
+
+# Conclusioni
+
+Concentrandosi sul mese di agosto, spiegare l'area bruciata in funzionde delle altre variabili risulta non facile visto la poca quantità di dati a disposizione. Poiché il valore r2 del modello è molto basso, probabilmente significa che i predittori avranno un errore significativo e potrebbero non essere affidabili.
