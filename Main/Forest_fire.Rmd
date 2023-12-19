@@ -4,12 +4,6 @@ author: "Andrei Petrisor, Antonio Radu, Lorenzo Medici, Andrea Rusconi"
 date: "2023-12-01"
 output:
   
-  html_document:
-    theme: cerulean
-    toc: yes
-    toc_float: yes
-  fontsize: 11pt
-  geometry: margin=1in
   pdf_document:
     
     toc: true
@@ -17,6 +11,12 @@ output:
     fig_width: 7
     fig_height: 6
     fig_caption: true
+  fontsize: 11pt
+  geometry: margin=1in
+  html_document:
+    theme: cerulean
+    toc: yes
+    toc_float: yes
   word_document:
     toc: yes
 editor_options:
@@ -88,7 +88,7 @@ Il dataset è composto dalle seguenti rilevazioni:
 # Carichiamo il dataset in formato .csv
 # Importante: bisogna specificare la directory dove il file è salvato.
 
-forest <- read.csv("C:/Users/radut/Documents/Forest-Fires/Dataset&Documentation/forestfires.csv")
+forest <- read.csv("C:/Users/loren/Documents/Forest-Fires/Dataset&Documentation/forestfires.csv")
 
 # Vediamo il nome delle variabili:
 
@@ -117,7 +117,7 @@ forest$day <- as.factor(forest$day)
 table(Months, Days)
 ```
 
-## Histogrammi area bruciata
+## Istogrammi area bruciata
 
 ```{r, figures-side1, fig.show="hold", out.width="50%",echo=F, message=F}
 # La variabile risposta è "area", studiamola più nello specifico:
