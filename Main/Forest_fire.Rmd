@@ -1,7 +1,7 @@
 ---
-title: "Forest Fires"
-author: "Andrei Petrisor, Antonio Radu, Lorenzo Medici, Andrea Rusconi"
-date: "2023-12-01"
+title: "Forest Fires - Gruppo Capri"
+author: "Andrei Petrisor 1085993, Antonio Radu 1085992, Lorenzo Medici 1085852, Andrea Rusconi 1086646"
+date: "15-01-2024"
 output:
   
   pdf_document:
