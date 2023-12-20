@@ -126,8 +126,7 @@ mtext("Fig.1", side=4, line=1)
 hist((log(forest$area)), col = "red", breaks=15, ylab = "Frequency", xlab = "Hectars", main = "Ln transform")
 mtext("Fig.2", side=4, line=1)
 ```
-Possiamo vedere dall'istogramma(Fig.1) come i dati sono assimetrici verso lo zero, di conseguenza valutiamo i dati
-facendo la trasformata grazie al logaritmo, cosifacendo otteniamo un grafico più simile ad una normale.
+Possiamo vedere come l'istogramma(Fig.1) presenti una asimmetria positiva(obliqua a destra) , di conseguenza valutiamo i dati facendo la trasformata grazie al logaritmo, cosifacendo otteniamo un grafico più simile ad una normale.
 
 ```{r}
 summary(forest$area)
