@@ -88,7 +88,9 @@ Il dataset è composto dalle seguenti rilevazioni:
 # Carichiamo il dataset in formato .csv
 # Importante: bisogna specificare la directory dove il file è salvato.
 
-forest <- read.csv("C:/Forest-Fires/Dataset&Documentation/forestfires.csv")
+
+forest <- read.csv("C:/Users/loren/Documents/Forest-Fires/Dataset&Documentation/forestfires.csv")
+
 # Vediamo il nome delle variabili:
 
 # Il comando 'summary' ci consente di vedere un riassunto delle variabili del dataset (min, max, etc.)
