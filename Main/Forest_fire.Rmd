@@ -89,7 +89,7 @@ Il dataset è composto dalle seguenti rilevazioni:
 # Importante: bisogna specificare la directory dove il file è salvato.
 
 
-forest <- read.csv("C:/Users/loren/Documents/Forest-Fires/Dataset&Documentation/forestfires.csv")
+forest <- read.csv("C:/Forest-Fires/Dataset&Documentation/forestfires.csv")
 
 # Vediamo il nome delle variabili:
 
@@ -194,7 +194,6 @@ sono: DC con DMC, ISI e FFMC, temp e DC. Le variabili correlate negativamente di
 # Testing
 
 Per la fase di testing prendiamo in considerazione solamente il mese di agosto, per poter spiegare come varia l'area bruciata in relazione alle altre variabili. Dividiamo la fase di Testing in: train e test, con il train al 70% e il test al 30%.
-Questo è il nostro nuovo dataset:
 
 ```{r, echo=F, message=F}
 forest_subset <- forest[which(forest$month=="aug"),]
@@ -292,7 +291,7 @@ I risultati ci mostrano come il modello 2 abbia l'AIC piu basso, useremo questo 
 
 ## Previsioni puntuale
 
-Per STIMA PUNTUALE DEI PARAMETRI s’intende l’insieme dei metodi inferenziali che permettono di attribuire un valore ad un parametro della popolazione, utilizzando i dati di un campione casuale osservato (x1, x2,…,xn) ed elaborandoli.Per valutare la bontà di uno stimatore è necessario considerare le stime ottenute ripetendo un grande numero di volte il processo impiegato per eseguire una stima.  
+Per stima puntuale s’intende l’insieme dei metodi inferenziali che permettono di attribuire un valore ad un parametro della popolazione, utilizzando i dati di un campione casuale osservato (x1, x2,…,xn) ed elaborandoli.Per valutare la bontà di uno stimatore è necessario considerare le stime ottenute ripetendo un grande numero di volte il processo impiegato per eseguire una stima.  
 
 ```{r, echo=F,message = F}
 #use lasso regression model to predict response value
