@@ -184,7 +184,10 @@ jarque.bera.test(forest$area)# J-B test
 
 Il Jarque Bera Test indica che la statistica del test è 145.49, con un valore p di 2.2e-16. Rifiuteremmo l'ipotesi nulla che i dati siano distribuiti normalmente in questa circostanza.
 
+
 \newpage
+
+## Boxplot
 
 ```{r, figures-side4, fig.show="hold", out.width="50%", echo=F, message=F,warning=F}
 # Correlazione tra variabili (quantitative):
