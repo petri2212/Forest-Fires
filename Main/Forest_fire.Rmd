@@ -27,6 +27,7 @@ editor_options:
 ```{r, include=FALSE}
 #mi serve per creare pdf
 options(tinytex.verbose = TRUE)
+
 ```
 
 ```{r setup, include=FALSE}
@@ -45,7 +46,7 @@ h2{color:blue;}
 
 # Dataset
 
-Questo dataset è pubblico e a disposizione per la ricerca. I dettagli
+Questo dataset[^90] è pubblico e a disposizione per la ricerca. I dettagli
 sul dataset possono essere trovati in Cortez e Morais (2007). Il dataset
 è composto dalle seguenti variabili:
 
@@ -106,6 +107,11 @@ forest$day <- as.factor(forest$day)
 table(Months, Days)
 ```
 
+[^90]:Per ulteriori informazioni sul dataset visitare il link: <http://www3.dsi.uminho.pt/pcortez/fires.pdf>
+
+
+\newpage
+
 ## Istogrammi area bruciata
 
 ```{r, figures-side1, fig.show="hold", out.width="50%",echo=F, message=F}
@@ -140,14 +146,47 @@ plot(density(log(forest$area)), col="blue",main = "Ln Densità area")
 
 Sembra esserci anche una forte distorsione rispetto ai residui che non sono normalmente distribuiti. Ciò sembra essere dovuto al gran numero di 0 nel database. Quando questi 0 vengono rimossi, possiamo vedere che i residui diventano più normalmente distribuiti.
 
-```{r, echo=F, message=F}
+```{r, echo=F, message=F,warning=F}
+library(PerformanceAnalytics)#skew
+library(moments) # carica il pacchetto per l'analisi statistica, kur
 # Dobbiamo però tener conto del numero di 0 presenti: log(0) = -Inf, quindi
 forest$area <- log(forest$area+1)
 summary(forest$area)
+
+
 ```
 come possiamo vedere la mediana e la media sono diminuite.
+```{r, echo=F, message=F,warning=F}
+skew_xts <-  skewness(forest$area)#skewness
+#skew_xts
 
-```{r, figures-side4, fig.show="hold", out.width="50%", echo=F, message=F}
+dev_standard=sqrt(var(forest$area))#dev standard
+#dev_standard
+
+kur=kurtosis(forest$area) # coefficiente di curtosi
+
+x <- (c(skew_xts))
+# una variabile ordinale
+y <- (c(dev_standard))
+
+# una variabile cardinale (integer)
+z <- c(kur)
+mydata <- data.frame(skewness=x, deviazione=y, curtosi=z) 
+mydata
+```
+
+Possiamo vedere l'indice di simmetria(skew), l'indice di dispersione(curtosi) e la deviazione standard.
+
+```{r,figures-side16, echo=F, message=F,warning=F}
+library(tseries)#J-B test
+jarque.bera.test(forest$area)# J-B test
+```
+
+Il Jarque Bera Test indica che la statistica del test è 145.49, con un valore p di 2.2e-16. Rifiuteremmo l'ipotesi nulla che i dati siano distribuiti normalmente in questa circostanza.
+
+\newpage
+
+```{r, figures-side4, fig.show="hold", out.width="50%", echo=F, message=F,warning=F}
 # Correlazione tra variabili (quantitative):
 # OPZIONALE (non dà punti extra):
 # Siccome i mesi e giorni sono variabili qualitative con più livelli, R automaticamente splitta in livelli le variabili usando il modello lineare o lineare generalizzato.
@@ -203,8 +242,39 @@ forest_subset <- forest_subset[,-c(1)]#elimino colonna month dal dataset
 #summary(forest_subset)
 ```
 
-Proviamo a fare un modello lineare con i dati del mese di agosto. Le variabili che secondo noi ha piu senso considerare nel modello sono: rain ,RH ,temp, FFMC, e DMC. RH-FFMC-DMC sono degli indici che tengono conto dell'umidità. Nessuno di questi parametri agisce in modo diretto sullo sviluppo dell’incendio, ma sono tutti fattori predisponenti, perciò consideriamo rilevante studiare come influenzano l'area incendiata.
+Proviamo a fare un modello lineare con i dati del mese di agosto. Le variabili che secondo noi ha piu senso considerare nel modello sono: rain ,RH ,temp, FFMC, e DMC. RH-FFMC-DMC sono degli indici che tengono conto dell'umidità. Nessuno di questi parametri agisce in modo diretto sullo sviluppo dell’incendio, ma sono tutti fattori predisponenti, perciò consideriamo rilevante studiare come influenzano l'area incendiata. Per capire la correlazione lineare tra la variabile risposta e le covariate mostriamo dei scatterplot.
 
+```{r, figures-side8, fig.show="hold", out.width="50%",echo=F, message=F, warning=F}
+#+(temp*DMC) potrebbe essere utile
+# scatterplot per capire che relazione c'e tra l'area bruciata e le varie covariate(spoiler i nostri dati non seguono nessuna regola)
+library(ggplot2)
+library(hrbrthemes)
+area=forest_subset$area
+temp=forest_subset$temp
+ggplot(forest_subset, aes(x=area, y=temp)) +
+geom_point() +
+geom_smooth(method=lm , color="red", se=FALSE)
+
+area=forest_subset$area
+RH=forest_subset$RH
+ggplot(forest_subset, aes(x=area, y=RH)) +
+geom_point() +
+geom_smooth(method=lm , color="red", se=FALSE)
+
+area=forest_subset$area
+rain=forest_subset$rain
+ggplot(forest_subset, aes(x=area, y=rain)) +
+geom_point() +
+geom_smooth(method=lm , color="red", se=FALSE)
+
+area=forest_subset$area
+DMC=forest_subset$DMC
+ggplot(forest_subset, aes(x=area, y=DMC)) +
+geom_point() +
+geom_smooth(method=lm , color="red", se=FALSE)
+ 
+```
+Come possiamo vedere le correlazioni non sono molto significative, l'r^2 tende a 0 quindi c'è una forte mancanza di correlazione che ci suggerisce di usare il modello vuoto per i nostri test. Le correlazioni tra area-DMC, area-rain e area-RH sono le piu evidenti a tal proposito. Proviamo ora a creare 3 modelli(semplice, polinomiale e interazionale)(Per realizzare il modello interazionale abbiamo usato la tecnica step-wise).
 
 ```{r,echo=F, message=F}
 # Optional:
@@ -224,31 +294,22 @@ test   <- forest_subset [!sample, ]
 model1 = lm(area ~ rain+RH+temp+FFMC+DMC, data = train)
 summary(model1)
 # modello polinomiale: posssiamo vedere dai risutati come i p value si siano alzati come anche l'r2 si è alzato
-model5 = lm(area ~ (rain^2)+(RH^2)+(temp^2)+(FFMC^2)+(DMC^2)+(ISI^2), data = train)
-summary(model5)
+model2 = lm(area ~ (rain^2)+(RH^2)+(temp^2)+(FFMC^2)+(DMC^2)+(ISI^2), data = train)
+#summary(model5)
 
-model6 = lm(area ~ temp+(rain*temp)+(temp*FFMC)+(RH*FFMC)+(train$day=="tue")+(train$day=="wed")+(train$day=="thu"), data = train)#non capisco perche un estimate di -82?????what does it mean bro
-summary(model6)
-#+(temp*DMC) potrebbe essere utile
-# scatterplot per capire che relazione c'e tra l'area bruciata e le varie covariate(spoiler i nostri dati non seguono nessuna regola)
-library(ggplot2)
-library(hrbrthemes)
-p2 <- ggplot(train, aes(x=train$area, y=train$ISI)) +
-  geom_point() +
-  geom_smooth(method=lm , color="red", se=FALSE) +
-  theme_ipsum()
+model3 = lm(area ~ temp+(rain*temp)+(temp*FFMC)+(RH*FFMC)+(train$day=="tue")+(train$day=="wed")+(train$day=="thu"), data = train)#non capisco perche un estimate di -82?????what does it mean bro
+summary(model3)
 
 ```
 
-Come possiamo vedere il nostro modello non performa benissimo, con un 4% come r^2 il modello ha un grande margine di errore. Tra le varie covariate scelte notiamo come la temperatura abbia il valore piu grande, quindi,  all'aumentare unitario dell'area, la temperatura media aumenta di 0.08. Proviamo a vedere se ci sono degli Outliers(valori estremi) nel modello.
+Come possiamo vedere i nostri modelli non performano benissimo, con un 4% e 9% come r^2 i modelli hanno un grande margine di errore. Tra le varie covariate scelte notiamo come la temperatura abbia il valore piu grande, quindi, all'aumentare unitario dell'area, la temperatura media aumenta di 0.08 nel primo e 2.47 nel secondo.
+Il modello polinomiale non ci ha dato risultati positivi quindi abbiamo deciso di scartatlo a priori. Togliamo dal modello le covariate con i p-values piu grandi(FFMC per il primo). Proviamo a vedere se ci sono degli Outliers(valori estremi) nei modelli.
 
-\newpage
-
-```{r,figures-side5, fig.show="hold", out.width="50%", echo=F, message=F}
+```{r,figures-side5, fig.show="hold", out.width="50%", echo=F, message=F, warning=F}
 
 # Diagnostic plot del modello:
 par(mfrow=c(2,2)) # finestra grafica 2x2
-plot(model6)
+plot(model1)
 par(mfrow=c(1,1)) # riportiamo ai valori di default
 
 mtext("Fig.1", side=4, line=1)#side  1 = sotto, 2 = sinistra, 3 = sopra, 4 = destra.
@@ -258,7 +319,7 @@ mtext("Fig.1", side=4, line=1)#side  1 = sotto, 2 = sinistra, 3 = sopra, 4 = des
 # rimuovere outlier:
 # install.packages("olsrr")
 library(olsrr)
-ols_plot_resid_lev(model6)
+ols_plot_resid_lev(model1)
 
 #mtext("Fig.2", side=4, line=1)#side  1 = sotto, 2 = sinistra, 3 = sopra, 4 = destra.
 ```
@@ -278,40 +339,41 @@ train = train[-c(76,78,47,3,114,45,24,26,120),]#attenzione i numeri si riferisco
 #24,26,120
   
 # Modello 1 senza outlier:
-model2 = lm(area ~rain+RH+temp+DMC, data = train)
-summary(model2)
-# Modello con variabili scelte da noi (scelte casualmente al momento):
-model3 = lm(area ~ ., data = train)
-summary(model3)
+model1 = lm(area ~rain+RH+temp+DMC, data = train)
+summary(model1)
+# modello con tutte le variabili:
+model2 = lm(area ~ ., data = train)
+#summary(model2)
 
-model6 = lm(area ~ temp+(rain*temp)+(temp*FFMC)+(RH*FFMC)+(day)+wind, data = train)#non capisco perche un estimate di -82?????what does it mean bro
-summary(model6)
+# modello con le interazioni:
+model3 = lm(area ~ temp+(rain*temp)+(temp*FFMC)+(RH*FFMC)+(train$day=="tue")+(train$day=="wed")+(train$day=="thu"), data = train)#non capisco perche un estimate di -82?????what does it mean bro
+summary(model3)
 
 # Test ANOVA
 #anova(model3)
 
 ```
 
-Il modello presenta un leggero miglioramento, l'r^2 aumenta del 7% rendendo il modello un minimo piu preciso. La covariata piu significativa è la temperatura, quindi all'aumentare unitario dell'area, la temperatura media aumenta di 0.12. I coefficienti associati alle variabili rain, FFMC, DMC non sono significativi, quindi supponiamo non influiscano sull'area. Passando da non avere la rain ad averla, a parità di temperatura, l'area diminuisce di 0.87.
+Il modello presenta un leggero miglioramento, l'r^2 aumenta fino a 12% e 16% rendendo i modelli sono un minimo piu precisi, quindi la correlazione tra la risposta e le covariate è migliore. La covariata piu significativa è la temperatura, quindi all'aumentare unitario dell'area, la temperatura media aumenta di 0.11 per il primo e 1.22 per il secondo. I coefficienti associati alle variabili rain, DMC non sono significativi, quindi supponiamo non influiscano sull'area. Passando da non avere la rain ad averla, a parità di temperatura, l'area diminuisce di 1.61 per il primo e 0.58 per il secondo.
 
 ## Scelta modello
 
-Per valutare quale dei 3 modelli (1o modello con variabili scelte da noi, il  2o modello  è uguale al primo, ma senza outliers, il 3o modello presenta tutte le variabili) sia meglio li mettiamo a confronto tramite la tecnica AIC(Akaike information criterion). Consiste in un metodo per la valutazione e il confronto tra modelli statistici. Fornisce una misura della qualità della stima di un modello statistico tenendo conto sia della bontà di adattamento che della complessità del modello. La regola è quella di preferire i modelli con l’AIC più basso.
+Per valutare quale dei 3 modelli (1o modello con variabili scelte da noi, il  2o modello con tutte le variabili e il 3o modello presenta le interazioni tra le variabili) sia meglio li mettiamo a confronto tramite la tecnica AIC(Akaike information criterion). Consiste in un metodo per la valutazione e il confronto tra modelli statistici. Fornisce una misura della qualità della stima di un modello statistico tenendo conto sia della bontà di adattamento che della complessità del modello. La regola è quella di preferire i modelli con l’AIC più basso.
 
-```{r, echo=F,message = F}
+```{r, echo=F,message = F,warning=F}
 # Create vector with values
-a = c(AIC(model6), BIC(model6),AIC(model5), BIC(model5),AIC(model3), BIC(model3), AIC(model2), BIC(model2), AIC(model1), BIC(model1))
+a = c(AIC(model1), BIC(model1),AIC(model2), BIC(model2),AIC(model3), BIC(model3))
 
 # Akaike Information Criterion (AIC) estimates the in-sample prediction error and indicates the relative quality of statistical models for a given dataset (it is only useful to compare models based on the same data). Bayesian Information Criterion (BIC) is a penalized-likelihood criterion derived from Bayesian probability. It is closely related to AIC. Generally, lower values of BIC and AIC are preferred.
 
 # Create vector with nforest
-b = c("AIC lm 6", "BIC lm 6", "AIC lm 5", "BIC lm 5","AIC lm 3", "BIC lm 3", "AIC lm 2", "BIC lm 2", "AIC lm 1", "BIC lm 1")
+b = c("AIC lm 1", "BIC lm 1", "AIC lm 2", "BIC lm 2","AIC lm 3", "BIC lm 3")
 
 # Link the values with nforest
 names(a) = b
 print(a)
 ```
-I risultati ci mostrano come il modello 2 abbia l'AIC piu basso, useremo questo modello per fare le previsioni.
+I risultati ci mostrano come il modello 1 abbia l'AIC piu basso, useremo questo modello per fare le previsioni.
 
 ## Previsioni puntuale
 
@@ -320,7 +382,7 @@ Per stima puntuale s’intende l’insieme dei metodi inferenziali che permetton
 ```{r, echo=F,message = F}
 #use lasso regression model to predict response value
 new = test
-previsioni_mod2 = predict(model2, newdata = new)#previsione puntuale
+previsioni_mod2 = predict(model1, newdata = new)#previsione puntuale
 
 #find SST and SSE
 sst <- sum((test$area - mean(test$area))^2)
@@ -337,7 +399,7 @@ sqrt(mean((test$area - previsioni_mod2)^2))#--
 
 La tecnica LASSO(least absolute shrinkage and selection operator) è un metodo di analisi della regressione che esegue sia la selezione delle variabili sia la regolarizzazione per migliorare l'accuratezza della previsione e l'interpretabilità del modello statistico risultante. Il metodo lasso presuppone che i coefficienti del modello lineare siano sparsi, ossia che pochi di essi siano non nulli. 
 
-```{r,figures-side7, fig.show="hold", out.width="50%", echo=F, message = F}
+```{r,figures-side7, fig.show="hold", out.width="50%", echo=F, message = F, warning=F}
 #penalizza le covariate,avra una parte classica piu un errore
 # install.packages("glmnet") # se non è già stato installato
 library(glmnet) 
@@ -353,7 +415,7 @@ cv_model <- cv.glmnet(x, y, alpha = 1)
 
 #find optimal lambda value that minimizes test MSE
 best_lambda <- cv_model$lambda.min
-best_lambda#miglior lambda per penalizzare
+#best_lambda#miglior lambda per penalizzare
 
 #produce plot of test MSE by lambda value
 plot(cv_model) 
@@ -361,10 +423,10 @@ plot(cv_model)
 # Fittiamo il modello con il best lambda (penalizzazione)
 
 best_model <- glmnet(x, y, alpha = 1, lambda = best_lambda)
-coef(best_model)
+#coef(best_model)
 ```
 
-Il grafico dovrebbe assomigliare ad una curva esponenziale, nel nostro caso il mean-squared error assomiglia ad una retta.
+Il grafico dovrebbe assomigliare ad una curva esponenziale, nel nostro caso il mean-squared error assomiglia ad una retta. Questo sta ad indicare che indipendentemente dal lambda non cambia la penalizzazione, dovuto al fatto che i regressori non hanno molto senso.
 
 ## Previsioni con Lasso
 ```{r, message = F}
@@ -377,16 +439,15 @@ sqrt(mean((test$area - previsioni)^2))#errore minimo
 
 ```
 
-Come possiamo vedere la previsione con la Lasso è migliore rispetto alla previsone puntuale, decidiamo quindi di usare la Lasso regression per prevedere i dati. 
-
-# Conclusioni
-
-Concentrandosi sul mese di agosto, spiegare l'area bruciata in funzionde delle altre variabili risulta non facile visto la poca quantità di dati a disposizione. Poiché il valore r2 del modello è molto basso, probabilmente significa che i predittori avranno un errore significativo e potrebbero non essere affidabili.
-
-
-
+Come possiamo vedere la previsione con la Lasso è poco migliore rispetto alla previsone puntuale, decidiamo quindi di usare la Lasso regression per prevedere i dati. 
 
 ```{r, message = F}
+media_area=mean(test$area)
+print(media_area)
+```
+
+Il nostro RMSE è molto vicino alla media dell'area bruciata, questo vuol dire che il modello non performa bene (è dovuto al dataset).
+```{r, echo=F, message = F, warning=F}
 # package to compute
 # cross - validation methods
 library(caret)
@@ -408,25 +469,26 @@ model <- train(area ~ temp+(rain*temp)+(temp*FFMC)+(RH*FFMC)+(day)+wind, data = 
  
 # printing model performance metrics
 # along with other details
-print(model)
+# print(model)
 
 ```
-```{r, message = F}
+
+```{r, echo=F, message = F, warning=F}
 #use lasso regression model to predict response value
 best_model <- glmnet(x, y, alpha = 1, lambda = 1.137352)
 previsioni = predict(best_model, s = 1.137352, newx = new)
 
 # Root Mean Squared Error (RMSE): è una misura dell'errore che compiamo
-sqrt(mean((test$area - previsioni)^2))#errore minimo
+# sqrt(mean((test$area - previsioni)^2))#errore minimo
 
 ```
 
-Cortez P. e Morais A. "Un approccio di data mining per prevedere gli
-incendi boschivi utilizzando dati meteorologici." In J. Neves, MF Santos
-e J. Machado Eds., "Nuove tendenze nell'intelligenza artificiale", Atti
-della 13a EPIA 2007 Conferenza portoghese sull'intelligenza artificiale,
-dicembre, Guimaraes, Por- tugal, pp. 512-523, 2007. APPIA, ISBN-13
-978-989-95618-0-9. 18-0-9. Disponibile a:
-<http://www3.dsi.uminho.pt/pcortez/fires.pdf>
 
+# Conclusioni
 
+Concentrandosi sul mese di agosto, spiegare l'area bruciata in funzionde delle altre variabili risulta non facile visto la poca quantità di dati a disposizione. Poiché il valore r2 del modello è molto basso, probabilmente i predittori avranno un errore significativo e potrebbero non essere affidabili. Per una maggior accuratezza nei risultati ci servirebbero piu dati o aggiungere qualche altra variabile (e.g. variabili spaziali). Abbiamo valutato anche il modello 6(senza mostrare i risultati) tramite la cross-validation per capire come si comportasse, il risultato è stato che anche quest'ultimo non performa bene.[^2]
+
+[^2]: Abbiamo consultato diverse fonti per realizzare questo report:
+Per il layout- <https://bookdown.org/yihui/rmarkdown/>.
+Per confrontare i risultati- <https://rstudio-pubs-static.s3.amazonaws.com/419751_b251adb1ab8e40f7aeab8b5c4a739c4f.html>.
+Per risolvere problemi di natura tecnica- <https://stackoverflow.com/>
