@@ -40,6 +40,7 @@ h1{color:#1e90ff;}
 h2{color:blue;}
 
 ```
+
 \newpage
 
 # Dataset
@@ -68,21 +69,8 @@ sul dataset possono essere trovati in Cortez e Morais (2007). Il dataset
 Il Forest Fire Weather Index (FWI) è il sistema canadese per la classificazione 
 del pericolo di incendio e comprende sei componenti:
 Indice di umidità del combustibile (FFMC), indice di umidità (DMC), 
-indice di siccità (DC), indice di spread iniziale (ISI), indice di accumulo (BUI) e FWI
+indice di siccità (DC), indice di dispersione iniziale (ISI) nel nostro caso indica la velocità della diffusione del fuoco, indice di accumulo (BUI) e FWI
     
-## Obiettivo
-
-In questo dataset siamo interessati a modellare l'area bruciata della foresta come funzione delle altre variabili. Siamo in particolare interessati a rispondere alla domanda: "Concentrandosi sul mese di agosto, come si può spiegare l'area bruciata in funzione delle altre variabili?".
-
-
-Cortez P. e Morais A. "Un approccio di data mining per prevedere gli
-incendi boschivi utilizzando dati meteorologici." In J. Neves, MF Santos
-e J. Machado Eds., "Nuove tendenze nell'intelligenza artificiale", Atti
-della 13a EPIA 2007 Conferenza portoghese sull'intelligenza artificiale,
-dicembre, Guimaraes, Por- tugal, pp. 512-523, 2007. APPIA, ISBN-13
-978-989-95618-0-9. 18-0-9. Disponibile a:
-<http://www3.dsi.uminho.pt/pcortez/fires.pdf>
-
 Il dataset è composto dalle seguenti rilevazioni:
 ```{r, echo=F, message=F}
 # Carichiamo il dataset in formato .csv
@@ -184,16 +172,30 @@ mtext("Fig.4", side=4, line=1)#side  1 = sotto, 2 = sinistra, 3 = sopra, 4 = des
 ```
 -Come possiamo vedere da questo correlation plot(fig.4) le variabili che sono correlate positivamente di più
 sono: DC con DMC, ISI e FFMC, temp e DC. Le variabili correlate negativamente di più sono, invece: RH e temp.
+Concentrandoci sulla variabile risposta (area) non ci sono correlazioni forti con nessuna delle covariate.
 
--Dal box plot delle variabili(fig.1) possiamo determinare che le mediane di quasi tutte le variabili sono più o meno simili quindi ci sono poche differenze,inoltre possiamo notare come in tutte le variabili ci siano degli outliers sia al minimo che al massimo. La variabile DMC, invece, presenta dei baffi più lunghi il che implica che tale variabile ha valori più incoerenti rispetto alle altre, la mediana è lontana da tutte le altre ed è spostata molto verso il terzo quartile.
+-Dal box plot delle variabili(fig.1) possiamo determinare che le mediane di quasi tutte le variabili sono più o meno simili quindi ci sono poche differenze, inoltre possiamo notare come in tutte le variabili ci siano degli outliers sia al minimo che al massimo. La covariata DMC, invece, presenta dei baffi più lunghi il che implica che tale variabile ha valori più incoerenti rispetto alle altre, la mediana è lontana da tutte le altre ed è spostata molto verso il terzo quartile. La covariata DC ha valori molto piu elevati rispetto alle altre covariate, percio non terremo conto di questa covariata.
 
 -Dal box plot dei giorni della settimana(fig.2) possiamo vedere come le mediane siano simili tra di loro, come anche i baffi, questo dimostra come i giorni della settimana abbiano tutti valori coerenti tra di loro.
 
 -Dal box plot dei mesi dell'anno(fig.3) notiamo come il mese di dicembre e quello di maggio siano quelli più incoerenti rispetto agli altri mesi. Il mese di agosto presenta molti più outliers rispetto agli altri mesi.
 
-# Testing
 
-Per la fase di testing prendiamo in considerazione solamente il mese di agosto, per poter spiegare come varia l'area bruciata in relazione alle altre variabili. Dividiamo la fase di Testing in: train e test, con il train al 70% e il test al 30%.
+# Domande specifiche
+
+In questo dataset siamo interessati a modellare l'area bruciata della foresta come funzione delle altre variabili. Siamo in particolare interessati a capire nel mese di agosto come possiamo spiegare l'area bruciata in funzione delle altre variabili, vogliamo capire anche come si comportano i vari modelli(semplice, polinomiale e interazioni tra variabili) e interpretare i loro risultati. Nello specifico vogliamo scoprire da quali variabili dipende l'area bruciata maggiormente. 
+
+# Metodologia
+
+I metodi usati per raggiungere gli obiettivi sono dei metodi di regressione lineare, ci permettono di spiegare una variabile risposta (Y=area bruciata) in funzione delle altre variabili esplicative a disposizione nel dataset(covariate, X). Useremo due metodi di regressione:
+
+-LASSO regression: metodo usato per trovare una best-lambda che ci permette di penalizzare alcuni regressori, questo per rendere il modello piu semplice(facciamo model selection).
+
+-K-fold cross validation: metodo usato per trattare un modello piu complesso(visto che abbiamo pochi dati), questo per non andare in overfitting cioe il modello performa bene in train, ma male in test.
+
+# Analisi dati e discussione risultati
+
+Per la fase di testing prendiamo in considerazione solamente il mese di agosto per poter spiegare come varia l'area bruciata in relazione alle altre variabili. Dividiamo la fase di Testing in: train e test, con il train al 70% e il test al 30%(cioe con il 70% dei dati alleno il modello, mentre con il restante 30% faccio le previsioni con i metodi).
 
 ```{r, echo=F, message=F}
 forest_subset <- forest[which(forest$month=="aug"),]
@@ -221,6 +223,20 @@ test   <- forest_subset [!sample, ]
 # Modello con poche:
 model1 = lm(area ~ rain+RH+temp+FFMC+DMC, data = train)
 summary(model1)
+# modello polinomiale: posssiamo vedere dai risutati come i p value si siano alzati come anche l'r2 si è alzato
+model5 = lm(area ~ (rain^2)+(RH^2)+(temp^2)+(FFMC^2)+(DMC^2)+(ISI^2), data = train)
+summary(model5)
+
+model6 = lm(area ~ temp+(rain*temp)+(temp*FFMC)+(RH*FFMC)+(train$day=="tue")+(train$day=="wed")+(train$day=="thu"), data = train)#non capisco perche un estimate di -82?????what does it mean bro
+summary(model6)
+#+(temp*DMC) potrebbe essere utile
+# scatterplot per capire che relazione c'e tra l'area bruciata e le varie covariate(spoiler i nostri dati non seguono nessuna regola)
+library(ggplot2)
+library(hrbrthemes)
+p2 <- ggplot(train, aes(x=train$area, y=train$ISI)) +
+  geom_point() +
+  geom_smooth(method=lm , color="red", se=FALSE) +
+  theme_ipsum()
 
 ```
 
@@ -232,7 +248,7 @@ Come possiamo vedere il nostro modello non performa benissimo, con un 4% come r^
 
 # Diagnostic plot del modello:
 par(mfrow=c(2,2)) # finestra grafica 2x2
-plot(model1)
+plot(model6)
 par(mfrow=c(1,1)) # riportiamo ai valori di default
 
 mtext("Fig.1", side=4, line=1)#side  1 = sotto, 2 = sinistra, 3 = sopra, 4 = destra.
@@ -242,7 +258,7 @@ mtext("Fig.1", side=4, line=1)#side  1 = sotto, 2 = sinistra, 3 = sopra, 4 = des
 # rimuovere outlier:
 # install.packages("olsrr")
 library(olsrr)
-ols_plot_resid_lev(model1)
+ols_plot_resid_lev(model6)
 
 #mtext("Fig.2", side=4, line=1)#side  1 = sotto, 2 = sinistra, 3 = sopra, 4 = destra.
 ```
@@ -252,16 +268,24 @@ Possiamo vedere come nel grafici (Fig.1), un numero considerevole di osservazion
 
 ```{r,echo=F, message=F}
 # Removing observations guardando numero dell'osservazione:
-#rownames(train) per vedere il la posizione dei valori di train
-train = train[-c(76,78,47,3,114,45),]#attenzione i numeri si riferiscono alla posizione dell'array degli outlier
-#416 421 228 13 500 212
+#rownames(train)#  per vedere il la posizione dei valori di train
+train = train[-c(76,78,47,3,114,45,24,26,120),]#attenzione i numeri si riferiscono alla posizione dell'array degli outlier
+#416 421 228 13 500 212 model 1 e 6
 #76  78  47  3  114 45
+
+#da fare per il model 6
+#120,122,510
+#24,26,120
+  
 # Modello 1 senza outlier:
-model2 = lm(area ~ rain+RH+temp+FFMC+DMC, data = train)
+model2 = lm(area ~rain+RH+temp+DMC, data = train)
 summary(model2)
 # Modello con variabili scelte da noi (scelte casualmente al momento):
 model3 = lm(area ~ ., data = train)
-#summary(model3)
+summary(model3)
+
+model6 = lm(area ~ temp+(rain*temp)+(temp*FFMC)+(RH*FFMC)+(day)+wind, data = train)#non capisco perche un estimate di -82?????what does it mean bro
+summary(model6)
 
 # Test ANOVA
 #anova(model3)
@@ -270,18 +294,18 @@ model3 = lm(area ~ ., data = train)
 
 Il modello presenta un leggero miglioramento, l'r^2 aumenta del 7% rendendo il modello un minimo piu preciso. La covariata piu significativa è la temperatura, quindi all'aumentare unitario dell'area, la temperatura media aumenta di 0.12. I coefficienti associati alle variabili rain, FFMC, DMC non sono significativi, quindi supponiamo non influiscano sull'area. Passando da non avere la rain ad averla, a parità di temperatura, l'area diminuisce di 0.87.
 
-## Confronto tra modelli
+## Scelta modello
 
 Per valutare quale dei 3 modelli (1o modello con variabili scelte da noi, il  2o modello  è uguale al primo, ma senza outliers, il 3o modello presenta tutte le variabili) sia meglio li mettiamo a confronto tramite la tecnica AIC(Akaike information criterion). Consiste in un metodo per la valutazione e il confronto tra modelli statistici. Fornisce una misura della qualità della stima di un modello statistico tenendo conto sia della bontà di adattamento che della complessità del modello. La regola è quella di preferire i modelli con l’AIC più basso.
 
 ```{r, echo=F,message = F}
 # Create vector with values
-a = c(AIC(model3), BIC(model3), AIC(model2), BIC(model2), AIC(model1), BIC(model1))
+a = c(AIC(model6), BIC(model6),AIC(model5), BIC(model5),AIC(model3), BIC(model3), AIC(model2), BIC(model2), AIC(model1), BIC(model1))
 
 # Akaike Information Criterion (AIC) estimates the in-sample prediction error and indicates the relative quality of statistical models for a given dataset (it is only useful to compare models based on the same data). Bayesian Information Criterion (BIC) is a penalized-likelihood criterion derived from Bayesian probability. It is closely related to AIC. Generally, lower values of BIC and AIC are preferred.
 
 # Create vector with nforest
-b = c("AIC lm 3", "BIC lm 3", "AIC lm 2", "BIC lm 2", "AIC lm 1", "BIC lm 1")
+b = c("AIC lm 6", "BIC lm 6", "AIC lm 5", "BIC lm 5","AIC lm 3", "BIC lm 3", "AIC lm 2", "BIC lm 2", "AIC lm 1", "BIC lm 1")
 
 # Link the values with nforest
 names(a) = b
@@ -321,8 +345,8 @@ library(glmnet)
 #define response variable
 y <- train$area
 
-#define matrix of predictor variables (uso solo poche variabili ma potete farlo con tutte da togliere però la risposta area)
-x <- data.matrix(train[, c("RH","rain","temp","FFMC","DMC")])
+#define matrix of predictor variables 
+x <- data.matrix(train[, c("temp","rain","RH","DMC")])
 
 #perform k-fold cross-validation to find optimal lambda value, la cross-validation è un ottimo modo per non overfittare e trovare il miglior modello
 cv_model <- cv.glmnet(x, y, alpha = 1)
@@ -345,7 +369,7 @@ Il grafico dovrebbe assomigliare ad una curva esponenziale, nel nostro caso il m
 ## Previsioni con Lasso
 ```{r, message = F}
 #use lasso regression model to predict response value
-new = data.matrix(test[,c("RH","rain","temp","FFMC","DMC")])
+new = data.matrix(test[,c("temp","rain","RH","DMC")])
 previsioni = predict(best_model, s = best_lambda, newx = new)
 
 # Root Mean Squared Error (RMSE): è una misura dell'errore che compiamo
@@ -358,3 +382,51 @@ Come possiamo vedere la previsione con la Lasso è migliore rispetto alla previs
 # Conclusioni
 
 Concentrandosi sul mese di agosto, spiegare l'area bruciata in funzionde delle altre variabili risulta non facile visto la poca quantità di dati a disposizione. Poiché il valore r2 del modello è molto basso, probabilmente significa che i predittori avranno un errore significativo e potrebbero non essere affidabili.
+
+
+
+
+```{r, message = F}
+# package to compute
+# cross - validation methods
+library(caret)
+
+set.seed(125) 
+ 
+# defining training control
+# as cross-validation and 
+# value of K equal to 10
+train_control <- trainControl(method = "cv",
+                              number = 10)
+ 
+# training the model by assigning sales column
+# as target variable and rest other column
+# as independent variable
+model <- train(area ~ temp+(rain*temp)+(temp*FFMC)+(RH*FFMC)+(day)+wind, data = train, 
+               method = "lm",
+               trControl = train_control)
+ 
+# printing model performance metrics
+# along with other details
+print(model)
+
+```
+```{r, message = F}
+#use lasso regression model to predict response value
+best_model <- glmnet(x, y, alpha = 1, lambda = 1.137352)
+previsioni = predict(best_model, s = 1.137352, newx = new)
+
+# Root Mean Squared Error (RMSE): è una misura dell'errore che compiamo
+sqrt(mean((test$area - previsioni)^2))#errore minimo
+
+```
+
+Cortez P. e Morais A. "Un approccio di data mining per prevedere gli
+incendi boschivi utilizzando dati meteorologici." In J. Neves, MF Santos
+e J. Machado Eds., "Nuove tendenze nell'intelligenza artificiale", Atti
+della 13a EPIA 2007 Conferenza portoghese sull'intelligenza artificiale,
+dicembre, Guimaraes, Por- tugal, pp. 512-523, 2007. APPIA, ISBN-13
+978-989-95618-0-9. 18-0-9. Disponibile a:
+<http://www3.dsi.uminho.pt/pcortez/fires.pdf>
+
+
