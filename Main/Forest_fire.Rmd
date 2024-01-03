@@ -225,11 +225,17 @@ Concentrandoci sulla variabile risposta (area) non ci sono correlazioni forti co
 
 # Domande specifiche
 
-In questo dataset siamo interessati a modellare l'area bruciata della foresta come funzione delle altre variabili. Siamo in particolare interessati a capire nel mese di agosto come possiamo spiegare l'area bruciata in funzione delle altre variabili, vogliamo capire anche come si comportano i vari modelli(semplice, polinomiale e interazioni tra variabili) e interpretare i loro risultati. Nello specifico vogliamo scoprire da quali variabili dipende l'area bruciata maggiormente. 
+In questo dataset siamo interessati a modellare l'area bruciata della foresta come funzione delle altre variabili. Siamo in particolare interessati a capire nel mese di agosto come possiamo spiegare l'area bruciata in funzione delle altre variabili, vogliamo capire anche come si comportano i vari modelli(semplice, polinomiale e interazioni tra variabili) e interpretare i loro risultati. Nello specifico vogliamo scoprire da quali variabili dipende l'area bruciata maggiormente e anche vedere come si comporta il modello in previsione. 
 
 # Metodologia
 
-I metodi usati per raggiungere gli obiettivi sono dei metodi di regressione lineare, ci permettono di spiegare una variabile risposta (Y=area bruciata) in funzione delle altre variabili esplicative a disposizione nel dataset(covariate, X). Useremo due metodi di regressione:
+I metodi usati per raggiungere gli obiettivi sono dei metodi di regressione lineare, ci permettono di spiegare una variabile risposta (Y=area bruciata) in funzione delle altre variabili esplicative a disposizione nel dataset(covariate, X). Faremo nel seguente modo:
+
+-Step1. Useremo tutti i dati a nostra disposizione visto che non sarebbe sufficientemente esaustivo usare i dati di un campione cosi piccolo per spiegare l'intera popolazione, alleneremo 3 modelli di diversa complessità.
+
+-Step2. Rimuoveremo gli outlaiers per vedere come cambiano gli R^2, cosi facendo scegliamo il miglior modello in base a chi ha l'RMSE piu basso.
+
+-Step3. Utilizzeremo la lasso che ci permette di penalizzare alcuni regressori, questo per rendere il modello piu semplice(facciamo variable selection), successivamente useremo la k-fold cross-validation per trovare un valore di lambda ottimale, la cross-validation è un ottimo modo per non overfittare e trovare il miglior modello.
 
 -LASSO regression: metodo usato per trovare una best-lambda che ci permette di penalizzare alcuni regressori, questo per rendere il modello piu semplice(facciamo model selection).
 
@@ -240,9 +246,12 @@ I metodi usati per raggiungere gli obiettivi sono dei metodi di regressione line
 Per la fase di testing prendiamo in considerazione solamente il mese di agosto per poter spiegare come varia l'area bruciata in relazione alle altre variabili. Dividiamo la fase di Testing in: train e test, con il train al 70% e il test al 30%(cioe con il 70% dei dati alleno il modello, mentre con il restante 30% faccio le previsioni con i metodi).
 
 ```{r, echo=F, message=F}
+#summary(forest)
+
 forest_subset <- forest[which(forest$month=="aug"),]
-forest_subset <- forest_subset[,-c(1)]#elimino colonna month dal dataset
 #summary(forest_subset)
+forest_subset <- forest_subset[,-c(1:2)]#elimino colonne month,day e rain(visto che rain = 0) dal dataset 
+#forest_subset
 ```
 
 Proviamo a fare un modello lineare con i dati del mese di agosto. Le variabili che secondo noi ha piu senso considerare nel modello sono: rain ,RH ,temp, FFMC, e DMC. RH-FFMC-DMC sono degli indici che tengono conto dell'umidità. Nessuno di questi parametri agisce in modo diretto sullo sviluppo dell’incendio, ma sono tutti fattori predisponenti, perciò consideriamo rilevante studiare come influenzano l'area incendiata. Per capire la correlazione lineare tra la variabile risposta e le covariate mostriamo dei scatterplot.
@@ -259,20 +268,20 @@ geom_point() +
 geom_smooth(method=lm , color="red", se=FALSE)
 
 area=forest_subset$area
-RH=forest_subset$RH
-ggplot(forest_subset, aes(x=area, y=RH)) +
+ISI=forest_subset$ISI
+ggplot(forest_subset, aes(x=area, y=ISI)) +
 geom_point() +
 geom_smooth(method=lm , color="red", se=FALSE)
 
 area=forest_subset$area
-rain=forest_subset$rain
-ggplot(forest_subset, aes(x=area, y=rain)) +
+FFMC=forest_subset$FFMC
+ggplot(forest_subset, aes(x=area, y=FFMC)) +
 geom_point() +
 geom_smooth(method=lm , color="red", se=FALSE)
 
 area=forest_subset$area
-DMC=forest_subset$DMC
-ggplot(forest_subset, aes(x=area, y=DMC)) +
+wind=forest_subset$wind
+ggplot(forest_subset, aes(x=area, y=wind)) +
 geom_point() +
 geom_smooth(method=lm , color="red", se=FALSE)
  
@@ -282,37 +291,61 @@ Come possiamo vedere le correlazioni non sono molto significative, l'r^2 tende a
 ```{r,echo=F, message=F}
 # Optional:
 #forest <- fastDummies::dummy_cols(forest, remove_first_dummy = TRUE)[-c(1,2)]
-# Regole classiche sono 70% training e 30% test (o 80-20 a vostra scelta)
-set.seed(125) # il seme serve per riprodurre le analisi (reproducibilità del codice)
-sample <- sample(c(TRUE, FALSE), nrow(forest_subset ), replace=TRUE, prob=c(0.7,0.3))
-train  <- forest_subset [sample, ]
-test   <- forest_subset [!sample, ]
+#Regole classiche sono 70% training e 30% test (o 80-20 a vostra scelta)
+#set.seed(125) # il seme serve per riprodurre le analisi (reproducibilità del codice)
+#sample <- sample(c(TRUE, FALSE), nrow(forest_subset ), replace=TRUE, prob=c(0.7,0.3))
+#train  <- forest_subset [sample, ]
+#test   <- forest_subset [!sample, ]
 
 # Modello con una sola variabile:
 # model = lm(area ~ rain, data = train)
 
 #summary(model)
+# Modello con poche::40,42,51,52,57,58,66,68:73,92:94,77,79,80,82,85,87,89,97:100,104,105,107,113:116,119,123:125,129:131,134,138
 
-# Modello con poche:
-model1 = lm(area ~ rain+RH+temp+FFMC+DMC, data = train)
+rownames(forest_subset)<-NULL
+
+forest_subset = forest_subset[-c(1:39,70,75,82,85,94,95,100:102,110,112:117,122,124,125,127,130,132,134,137:139,142:145,149,150,152,158:161,164,169:171,175,176,177,180,184),]
+
+
+model1 = lm(area ~ DMC+ISI, data = forest_subset)
 summary(model1)
 # modello polinomiale: posssiamo vedere dai risutati come i p value si siano alzati come anche l'r2 si è alzato
-model2 = lm(area ~ (rain^2)+(RH^2)+(temp^2)+(FFMC^2)+(DMC^2)+(ISI^2), data = train)
-#summary(model5)
+#model2 = lm(area ~ temp+DMC+FFMC+I(temp^2)+I(DMC^2)+I(rain^2)+I(FFMC^2), data = forest_subset)
+#summary(model2)
+model2 = lm(area ~  I(temp^2)+I(temp^3)+wind+I(wind^2), data = forest_subset)
+summary(model2)
 
-model3 = lm(area ~ temp+(rain*temp)+(temp*FFMC)+(RH*FFMC)+(train$day=="tue")+(train$day=="wed")+(train$day=="thu"), data = train)#non capisco perche un estimate di -82?????what does it mean bro
+model3 = lm(area ~ temp+I(temp^3)+wind+RH+I(RH^2)+I(RH*wind)+I(temp^2*wind^2)+I(RH*temp), data = forest_subset)
 summary(model3)
+
 
 ```
 
 Come possiamo vedere i nostri modelli non performano benissimo, con un 4% e 9% come r^2 i modelli hanno un grande margine di errore. Tra le varie covariate scelte notiamo come la temperatura abbia il valore piu grande, quindi, all'aumentare unitario dell'area, la temperatura media aumenta di 0.08 nel primo e 2.47 nel secondo.
 Il modello polinomiale non ci ha dato risultati positivi quindi abbiamo deciso di scartatlo a priori. Togliamo dal modello le covariate con i p-values piu grandi(FFMC per il primo). Proviamo a vedere se ci sono degli Outliers(valori estremi) nei modelli.
 
-```{r,figures-side5, fig.show="hold", out.width="50%", echo=F, message=F, warning=F}
+```{r,echo=F, message=F}
+#rownames(forest_subset)
+#summary(forest_subset)
 
+rownames(forest_subset)<-NULL
+
+#rownames(forest_subset)
+#forest_subset
+
+#rownames(forest)
+#rownames(train)
+#rownames(test)
+#forest = forest[-c(3),]
+#rownames(forest)
+
+```
+
+```{r,figures-side5, fig.show="hold", out.width="50%", echo=F, message=F, warning=F}
 # Diagnostic plot del modello:
 par(mfrow=c(2,2)) # finestra grafica 2x2
-plot(model1)
+plot(model3)
 par(mfrow=c(1,1)) # riportiamo ai valori di default
 
 mtext("Fig.1", side=4, line=1)#side  1 = sotto, 2 = sinistra, 3 = sopra, 4 = destra.
@@ -322,7 +355,7 @@ mtext("Fig.1", side=4, line=1)#side  1 = sotto, 2 = sinistra, 3 = sopra, 4 = des
 # rimuovere outlier:
 # install.packages("olsrr")
 library(olsrr)
-ols_plot_resid_lev(model1)
+ols_plot_resid_lev(model3)
 
 #mtext("Fig.2", side=4, line=1)#side  1 = sotto, 2 = sinistra, 3 = sopra, 4 = destra.
 ```
@@ -330,27 +363,64 @@ ols_plot_resid_lev(model1)
 Possiamo vedere come nel grafici (Fig.1), un numero considerevole di osservazioni non segue l'andamento desiderato, poniamo maggiore attenzione sul grafico Q-Q Res. dove possiamo vedere che i vari valori alle code tendono a spostarsi di molto, l'andamento non tende per niente alla normale. Per quanto riguarda il grafico a destra possiamo notare come alcune rilevazioni siano parecchio "lontane" rispetto alle altre, poniamo attenzione soprattuto a quelle che sono Outlier&Leverage e le rimuoviamo. 
 
 
+
 ```{r,echo=F, message=F}
 # Removing observations guardando numero dell'osservazione:
 #rownames(train)#  per vedere il la posizione dei valori di train
-train = train[-c(76,78,47,3,114,45,24,26,120),]#attenzione i numeri si riferiscono alla posizione dell'array degli outlier
-#416 421 228 13 500 212 model 1 e 6
-#76  78  47  3  114 45
+#train = train[-c(76,78,47,3,114,45,24,26,120),]#attenzione i numeri si riferiscono alla posizione dell'array degli outlier25,91,34,76,63,55
 
-#da fare per il model 6
+forest_subset = forest_subset[-c(25,91,34,76,63,55),]
+#con tutto database dato
+#416 421 228 13 500 212 model 1 e 6
+#118,121 ,66 ,4 ,168, 64
+
+#120,122,510
+#36,38,178
+
+#236,64,182,183,148,118
+#68,15,
+
+#solo train
+#416 421 228 13 500 212 model 1 e 6
+#76,78 ,47 ,3 ,114, 45
+
 #120,122,510
 #24,26,120
+
+
   
-# Modello 1 senza outlier:
-model1 = lm(area ~rain+RH+temp+DMC, data = train)
-summary(model1)
+# Modello 1 senza outlier:rain+RH+temp+DMC
+#model1 = lm(area ~rain+RH+temp+DMC, data = train)
+#summary(model1)
 # modello con tutte le variabili:
-model2 = lm(area ~ ., data = train)
+#model2 = lm(area ~ area ~ temp+I(temp^2)+I(temp^3)+wind+I(wind^2)+RH+I(RH^2), data = train)
 #summary(model2)
 
 # modello con le interazioni:
-model3 = lm(area ~ temp+(rain*temp)+(temp*FFMC)+(RH*FFMC)+(train$day=="tue")+(train$day=="wed")+(train$day=="thu"), data = train)#non capisco perche un estimate di -82?????what does it mean bro
+#model3 = lm(area ~ temp+I(temp^2)+I(temp^3)+wind+I(wind^2)+RH+I(RH^2)+I(temp*wind)+I(RH*wind)+I(RH*temp), data = train)
+#summary(model3)
+
+
+
+
+
+#tutti dati
+
+# Modello 1 senza outlier:rain+RH+temp+DMC
+model1 = lm(area ~ DMC, data = forest_subset)
+summary(model1)
+# modello con tutte le variabili:
+model2 = lm(area ~ I(temp^2)+I(temp^3)+wind+I(wind^2), data = forest_subset)
+summary(model2)
+
+# modello con le interazioni:
+model3 = lm(area ~ temp+I(temp^3)+wind+RH+I(RH^2)+I(RH*wind)+I(temp^2*wind^2)+I(RH*temp)+I(temp*ISI), data = forest_subset)
 summary(model3)
+
+
+#rownames(forest_subset)
+
+
 
 # Test ANOVA
 #anova(model3)
@@ -384,15 +454,15 @@ Per stima puntuale s’intende l’insieme dei metodi inferenziali che permetton
 
 ```{r, echo=F,message = F}
 #use lasso regression model to predict response value
-new = test
-previsioni_mod2 = predict(model1, newdata = new)#previsione puntuale
+new = forest_subset
+previsioni_mod2 = predict(model3, newdata = new)#previsione puntuale
 
 #find SST and SSE
-sst <- sum((test$area - mean(test$area))^2)
-sse <- sum((previsioni_mod2 - test$area)^2)
+sst <- sum((forest_subset$area - mean(forest_subset$area))^2)
+sse <- sum((previsioni_mod2 - forest_subset$area)^2)
 
 # Root Mean Squared Error: è una misura dell'errore che compiamo
-sqrt(mean((test$area - previsioni_mod2)^2))#--
+sqrt(mean((forest_subset$area - previsioni_mod2)^2))#--
 
 # intervallo di previsione
 # predict(model3,new,interval="predict", level=0.95)#intervallo di previsione
@@ -404,14 +474,17 @@ La tecnica LASSO(least absolute shrinkage and selection operator) è un metodo d
 
 ```{r,figures-side7, fig.show="hold", out.width="50%", echo=F, message = F, warning=F}
 #penalizza le covariate,avra una parte classica piu un errore
+
 # install.packages("glmnet") # se non è già stato installato
 library(glmnet) 
 
 #define response variable
-y <- train$area
+y <- forest_subset$area
 
 #define matrix of predictor variables 
-x <- data.matrix(train[, c("temp","rain","RH","DMC")])
+x <- model.matrix(area ~ temp+I(temp^3)+wind+RH+I(RH^2)+I(RH*wind)+I(temp^2*wind^2)+I(RH*temp)+I(temp*ISI),data=forest_subset)
+
+#x <- data.matrix(train[,c("temp","DMC","FFMC")])
 
 #perform k-fold cross-validation to find optimal lambda value, la cross-validation è un ottimo modo per non overfittare e trovare il miglior modello
 cv_model <- cv.glmnet(x, y, alpha = 1)
@@ -432,59 +505,24 @@ best_model <- glmnet(x, y, alpha = 1, lambda = best_lambda)
 Il grafico dovrebbe assomigliare ad una curva esponenziale, nel nostro caso il mean-squared error assomiglia ad una retta. Questo sta ad indicare che indipendentemente dal lambda non cambia la penalizzazione, dovuto al fatto che i regressori non hanno molto senso.
 
 ## Previsioni con Lasso
-```{r, message = F}
+```{r, message = F, warning=F}
 #use lasso regression model to predict response value
-new = data.matrix(test[,c("temp","rain","RH","DMC")])
+new = model.matrix(area ~ temp+I(temp^3)+wind+RH+I(RH^2)+I(RH*wind)+I(temp^2*wind^2)+I(RH*temp)+I(temp*ISI),data=forest_subset)
 previsioni = predict(best_model, s = best_lambda, newx = new)
 
 # Root Mean Squared Error (RMSE): è una misura dell'errore che compiamo
-sqrt(mean((test$area - previsioni)^2))#errore minimo
+sqrt(mean((forest_subset$area - previsioni)^2))#errore minimo
 
 ```
 
 Come possiamo vedere la previsione con la Lasso è poco migliore rispetto alla previsone puntuale, decidiamo quindi di usare la Lasso regression per prevedere i dati. 
 
 ```{r, message = F}
-media_area=mean(test$area)
-print(media_area)
+media_area=mean(forest_subset$area)
+best_lambda
 ```
 
 Il nostro RMSE è molto vicino alla media dell'area bruciata, questo vuol dire che il modello non performa bene (è dovuto al dataset).
-```{r, echo=F, message = F, warning=F}
-# package to compute
-# cross - validation methods
-library(caret)
-
-set.seed(125) 
- 
-# defining training control
-# as cross-validation and 
-# value of K equal to 10
-train_control <- trainControl(method = "cv",
-                              number = 10)
- 
-# training the model by assigning sales column
-# as target variable and rest other column
-# as independent variable
-model <- train(area ~ temp+(rain*temp)+(temp*FFMC)+(RH*FFMC)+(day)+wind, data = train, 
-               method = "lm",
-               trControl = train_control)
- 
-# printing model performance metrics
-# along with other details
-# print(model)
-
-```
-
-```{r, echo=F, message = F, warning=F}
-#use lasso regression model to predict response value
-best_model <- glmnet(x, y, alpha = 1, lambda = 1.137352)
-previsioni = predict(best_model, s = 1.137352, newx = new)
-
-# Root Mean Squared Error (RMSE): è una misura dell'errore che compiamo
-# sqrt(mean((test$area - previsioni)^2))#errore minimo
-
-```
 
 
 # Conclusioni
