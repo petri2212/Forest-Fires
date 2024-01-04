@@ -144,7 +144,7 @@ plot(density(log(forest$area)), col="blue",main = "Ln Densità area")
 ```
 \newpage
 
-Sembra esserci anche una forte distorsione rispetto ai residui che non sono normalmente distribuiti. Ciò sembra essere dovuto al gran numero di 0 nel database. Quando questi 0 vengono rimossi, possiamo vedere che i residui diventano più normalmente distribuiti.
+Sembra esserci anche una forte distorsione rispetto ai residui che non sono normalmente distribuiti. Ciò sembra essere dovuto al gran numero di 0 nel database. 
 
 ```{r, echo=F, message=F,warning=F}
 library(PerformanceAnalytics)#skew
@@ -182,7 +182,7 @@ library(tseries)#J-B test
 jarque.bera.test(forest$area)# J-B test
 ```
 
-Il Jarque Bera Test indica che la statistica del test è 145.49, con un valore p di 2.2e-16. Rifiuteremmo l'ipotesi nulla che i dati siano distribuiti normalmente in questa circostanza.
+Il Jarque Bera Test indica che la statistica del test è 145.49, con un valore p di 2.2e-16. Rifiuteremo l'ipotesi nulla che i dati siano distribuiti normalmente in questa circostanza.
 
 
 \newpage
@@ -225,25 +225,22 @@ Concentrandoci sulla variabile risposta (area) non ci sono correlazioni forti co
 
 # Domande specifiche
 
-In questo dataset siamo interessati a modellare l'area bruciata della foresta come funzione delle altre variabili. Siamo in particolare interessati a capire nel mese di agosto come possiamo spiegare l'area bruciata in funzione delle altre variabili, vogliamo capire anche come si comportano i vari modelli(semplice, polinomiale e interazioni tra variabili) e interpretare i loro risultati. Nello specifico vogliamo scoprire da quali variabili dipende l'area bruciata maggiormente e anche vedere come si comporta il modello in previsione. 
+In questo dataset siamo interessati a modellare l'area bruciata della foresta come funzione delle altre variabili. Siamo in particolare interessati a capire nel mese di agosto come possiamo spiegare l'area bruciata, vogliamo capire anche come si comportano i vari modelli(semplice, polinomiale e interazioni tra covariate) e interpretare i loro risultati. Nello specifico vogliamo scoprire da quali variabili dipende l'area bruciata maggiormente e anche vedere come si comporta il modello in previsione. 
 
 # Metodologia
 
-I metodi usati per raggiungere gli obiettivi sono dei metodi di regressione lineare, ci permettono di spiegare una variabile risposta (Y=area bruciata) in funzione delle altre variabili esplicative a disposizione nel dataset(covariate, X). Faremo nel seguente modo:
+I metodi usati per raggiungere gli obiettivi sono dei metodi di regressione lineare, ci permettono di spiegare una variabile risposta (Y=area bruciata) in funzione delle altre variabili esplicative a disposizione nel dataset(covariate, X). Seguiremo i seguenti step:
 
--Step1. Useremo tutti i dati a nostra disposizione visto che non sarebbe sufficientemente esaustivo usare i dati di un campione cosi piccolo per spiegare l'intera popolazione, alleneremo 3 modelli di diversa complessità.
+-Step1. Verranno usati tutti i dati a nostra disposizione visto che non sarebbe sufficientemente esaustivo usare i dati di un campione cosi piccolo per spiegare l'intera popolazione, alleneremo 3 modelli di diversa complessità.
 
 -Step2. Rimuoveremo gli outlaiers per vedere come cambiano gli R^2, cosi facendo scegliamo il miglior modello in base a chi ha l'RMSE piu basso.
 
 -Step3. Utilizzeremo la lasso che ci permette di penalizzare alcuni regressori, questo per rendere il modello piu semplice(facciamo variable selection), successivamente useremo la k-fold cross-validation per trovare un valore di lambda ottimale, la cross-validation è un ottimo modo per non overfittare e trovare il miglior modello.
 
--LASSO regression: metodo usato per trovare una best-lambda che ci permette di penalizzare alcuni regressori, questo per rendere il modello piu semplice(facciamo model selection).
-
--K-fold cross validation: metodo usato per trattare un modello piu complesso(visto che abbiamo pochi dati), questo per non andare in overfitting cioe il modello performa bene in train, ma male in test.
-
 # Analisi dati e discussione risultati
 
-Per la fase di testing prendiamo in considerazione solamente il mese di agosto per poter spiegare come varia l'area bruciata in relazione alle altre variabili. Dividiamo la fase di Testing in: train e test, con il train al 70% e il test al 30%(cioe con il 70% dei dati alleno il modello, mentre con il restante 30% faccio le previsioni con i metodi).
+Per la fase di testing prendiamo in considerazione solamente il mese di agosto per poter spiegare come varia l'area bruciata in relazione alle altre variabili.
+Questa fase sarà svolta su tutti i campioni a nostra disposizione(non ha senso prendere il 70% dei campioni per via del basso numero di dati).
 
 ```{r, echo=F, message=F}
 #summary(forest)
@@ -286,13 +283,13 @@ geom_point() +
 geom_smooth(method=lm , color="red", se=FALSE)
  
 ```
-Come possiamo vedere le correlazioni non sono molto significative, l'r^2 tende a 0 quindi c'è una forte mancanza di correlazione che ci suggerisce di usare il modello vuoto per i nostri test. Le correlazioni tra area-DMC, area-rain e area-RH sono le piu evidenti a tal proposito. Proviamo ora a creare 3 modelli(semplice, polinomiale e interazionale)(Per realizzare il modello interazionale abbiamo usato la tecnica step-wise).
+Come possiamo vedere le correlazioni non sono molto significative, l'r^2 tende a 0 quindi c'è una forte mancanza di correlazione che ci suggerisce di usare il modello vuoto per i nostri test. Visto il gran numero di zeri deicidiamo di togliere la maggioraparte di essi per vedere come performano i modelli. Proviamo ora a creare 3 modelli(semplice, polinomiale e polinomiale con interazioni)(per realizzare i migliori modelli abbiamo usato la tecnica step-wise per scegliere le covariate piu significative).
 
 ```{r,echo=F, message=F}
 # Optional:
 #forest <- fastDummies::dummy_cols(forest, remove_first_dummy = TRUE)[-c(1,2)]
 #Regole classiche sono 70% training e 30% test (o 80-20 a vostra scelta)
-#set.seed(125) # il seme serve per riprodurre le analisi (reproducibilità del codice)
+set.seed(125) # il seme serve per riprodurre le analisi (reproducibilità del codice)
 #sample <- sample(c(TRUE, FALSE), nrow(forest_subset ), replace=TRUE, prob=c(0.7,0.3))
 #train  <- forest_subset [sample, ]
 #test   <- forest_subset [!sample, ]
@@ -322,8 +319,8 @@ summary(model3)
 
 ```
 
-Come possiamo vedere i nostri modelli non performano benissimo, con un 4% e 9% come r^2 i modelli hanno un grande margine di errore. Tra le varie covariate scelte notiamo come la temperatura abbia il valore piu grande, quindi, all'aumentare unitario dell'area, la temperatura media aumenta di 0.08 nel primo e 2.47 nel secondo.
-Il modello polinomiale non ci ha dato risultati positivi quindi abbiamo deciso di scartatlo a priori. Togliamo dal modello le covariate con i p-values piu grandi(FFMC per il primo). Proviamo a vedere se ci sono degli Outliers(valori estremi) nei modelli.
+Come possiamo vedere i nostri modelli non performano benissimo, con degli r^2 (2%,7.7%,7.8%) cosi bassi i modelli hanno un grande margine di errore. Il modello 1 ci suggerisce che il modello migliore è quello senza nessuna covariata e quindi avrebbe senso tenere soltanto l'intercetta. Il modello 2 ci evidenzia come i termini polinomiali rendano la correlazione tra area e le covariate un pò più significativa (rispetto al modello 1). 
+Il modello 3 ha un r^2 simile al modello 2, ma le sue covariate non sono significative. Togliamo dal primo modello le covariate con i p-values piu grandi(ISI). Proviamo a vedere se ci sono degli Outliers(valori estremi) nei modelli.
 
 ```{r,echo=F, message=F}
 #rownames(forest_subset)
@@ -427,11 +424,11 @@ summary(model3)
 
 ```
 
-Il modello presenta un leggero miglioramento, l'r^2 aumenta fino a 12% e 16% rendendo i modelli sono un minimo piu precisi, quindi la correlazione tra la risposta e le covariate è migliore. La covariata piu significativa è la temperatura, quindi all'aumentare unitario dell'area, la temperatura media aumenta di 0.11 per il primo e 1.22 per il secondo. I coefficienti associati alle variabili rain, DMC non sono significativi, quindi supponiamo non influiscano sull'area. Passando da non avere la rain ad averla, a parità di temperatura, l'area diminuisce di 1.61 per il primo e 0.58 per il secondo.
+I modelli presentano un leggero miglioramento. Il modello 1 peggiora e quindi ci dice in definitiva che un modello lineare semplice non conviene per studiare questo dataset. Il modello 2 migliora leggermente, un r^2 cosi piccolo e un r^2 corretto cosi diverso ci indica che ciò è dovuto al fatto che il secondo corregge il primo tenendo conto anche di n(numero campioni) e di p(prametri). Se n non è molto più grande di p, allora l'R2 corretto penalizza R^2 poiché c'è il forte rischio di andare in over-fitting. Il modello 3 si è rilevato essere il migior modello tra i 3, con un r^2 di 0.19(comunque basso) e le covariate che diventano un minimo significative, è il modello che si adatta meglio ai nostri dati.
 
 ## Scelta modello
 
-Per valutare quale dei 3 modelli (1o modello con variabili scelte da noi, il  2o modello con tutte le variabili e il 3o modello presenta le interazioni tra le variabili) sia meglio li mettiamo a confronto tramite la tecnica AIC(Akaike information criterion). Consiste in un metodo per la valutazione e il confronto tra modelli statistici. Fornisce una misura della qualità della stima di un modello statistico tenendo conto sia della bontà di adattamento che della complessità del modello. La regola è quella di preferire i modelli con l’AIC più basso.
+Per valutare quale dei 3 modelli sia meglio abbiamo analizzato in precedenza i diversi r^2 per capire chi avesse un RMSE piu piccolo(modello 3). Vogliamo mettere i 3 modelli a confronto anche tramite la tecnica AIC(Akaike information criterion). Consiste in un metodo per la valutazione e il confronto tra modelli statistici. Fornisce una misura della qualità della stima di un modello statistico tenendo conto sia della bontà di adattamento che della complessità del modello. La regola è quella di preferire i modelli con l’AIC più basso. 
 
 ```{r, echo=F,message = F,warning=F}
 # Create vector with values
@@ -446,13 +443,13 @@ b = c("AIC lm 1", "BIC lm 1", "AIC lm 2", "BIC lm 2","AIC lm 3", "BIC lm 3")
 names(a) = b
 print(a)
 ```
-I risultati ci mostrano come il modello 1 abbia l'AIC piu basso, useremo questo modello per fare le previsioni.
+I risultati ci mostrano come il modello 3 abbia l'AIC piu basso nonostante sia molto piu complesso rispetto al primo e al secondo modello, questo significa che il primo e il secondo modello performano molto male. Scegliamo(tramite r^2) il 3 modello per svolgere le previsioni.
 
 ## Previsioni puntuale
 
-Per stima puntuale s’intende l’insieme dei metodi inferenziali che permettono di attribuire un valore ad un parametro della popolazione, utilizzando i dati di un campione casuale osservato (x1, x2,…,xn) ed elaborandoli.Per valutare la bontà di uno stimatore è necessario considerare le stime ottenute ripetendo un grande numero di volte il processo impiegato per eseguire una stima.  
+Per stima puntuale s’intende l’insieme dei metodi inferenziali che permettono di attribuire un valore ad un parametro della popolazione, utilizzando i dati di un campione casuale osservato (x1, x2,…,xn) ed elaborandoli. Per valutare la bontà di uno stimatore è necessario considerare le stime ottenute ripetendo un grande numero di volte il processo impiegato per eseguire una stima.  
 
-```{r, echo=F,message = F}
+```{r,echo=F, message = F}
 #use lasso regression model to predict response value
 new = forest_subset
 previsioni_mod2 = predict(model3, newdata = new)#previsione puntuale
@@ -463,9 +460,6 @@ sse <- sum((previsioni_mod2 - forest_subset$area)^2)
 
 # Root Mean Squared Error: è una misura dell'errore che compiamo
 sqrt(mean((forest_subset$area - previsioni_mod2)^2))#--
-
-# intervallo di previsione
-# predict(model3,new,interval="predict", level=0.95)#intervallo di previsione
 ```
 
 ## LASSO regression
@@ -502,12 +496,13 @@ best_model <- glmnet(x, y, alpha = 1, lambda = best_lambda)
 #coef(best_model)
 ```
 
-Il grafico dovrebbe assomigliare ad una curva esponenziale, nel nostro caso il mean-squared error assomiglia ad una retta. Questo sta ad indicare che indipendentemente dal lambda non cambia la penalizzazione, dovuto al fatto che i regressori non hanno molto senso.
+Il grafico dovrebbe assomigliare ad una curva esponenziale, nel nostro caso il mean-squared error tende ad un andamento esponenziale 2 volte, ma alla fine torna al punto di partenza. Questo sta ad indicare che indipendentemente dal lambda non cambia la penalizzazione, dovuto al fatto che i regressori non hanno molto senso.
 
 ## Previsioni con Lasso
 ```{r, message = F, warning=F}
 #use lasso regression model to predict response value
-new = model.matrix(area ~ temp+I(temp^3)+wind+RH+I(RH^2)+I(RH*wind)+I(temp^2*wind^2)+I(RH*temp)+I(temp*ISI),data=forest_subset)
+new = model.matrix(area ~ temp+I(temp^3)+wind+RH+I(RH^2)+I(RH*wind)+I(temp^2*wind^2)
+                   +I(RH*temp)+I(temp*ISI),data=forest_subset)
 previsioni = predict(best_model, s = best_lambda, newx = new)
 
 # Root Mean Squared Error (RMSE): è una misura dell'errore che compiamo
@@ -515,21 +510,21 @@ sqrt(mean((forest_subset$area - previsioni)^2))#errore minimo
 
 ```
 
-Come possiamo vedere la previsione con la Lasso è poco migliore rispetto alla previsone puntuale, decidiamo quindi di usare la Lasso regression per prevedere i dati. 
-
-```{r, message = F}
-media_area=mean(forest_subset$area)
-best_lambda
-```
-
-Il nostro RMSE è molto vicino alla media dell'area bruciata, questo vuol dire che il modello non performa bene (è dovuto al dataset).
-
+Come possiamo vedere la previsione con la Lasso è poco peggiore rispetto alla previsone puntuale, decidiamo quindi di usare la previsione puntuale per prevedere i dati. 
 
 # Conclusioni
 
-Concentrandosi sul mese di agosto, spiegare l'area bruciata in funzionde delle altre variabili risulta non facile visto la poca quantità di dati a disposizione. Poiché il valore r2 del modello è molto basso, probabilmente i predittori avranno un errore significativo e potrebbero non essere affidabili. Per una maggior accuratezza nei risultati ci servirebbero piu dati o aggiungere qualche altra variabile (e.g. variabili spaziali). Abbiamo valutato anche il modello 6(senza mostrare i risultati) tramite la cross-validation per capire come si comportasse, il risultato è stato che anche quest'ultimo non performa bene.[^2]
+Concentrandosi sul mese di agosto, spiegare l'area bruciata in funzionde delle altre variabili risulta non facile visto la poca quantità di dati a disposizione. Poiché il valore R^2 del modello è molto basso, probabilmente i predittori avranno un errore significativo e potrebbero non essere affidabili. Gli sviluppi futuri potttrebbero essere:
 
-[^2]: Abbiamo consultato diverse fonti per realizzare questo report:
+-Avere piu dati e/o aggiungere qualche altra variabile (e.g. variabili spaziali) per una maggior accuratezza nei risultati.
+
+-Si potrebbero implementare delle reti neurali per analizzare i dati.
+
+-Si potrebbero utilizzare altre tecniche come la SVM o la random forest(non overfitta, è molto accurata ed parecchio complessa). [^b]
+
+\newpage
+
+[^b]: Abbiamo consultato diverse fonti per realizzare questo report:
 Per il layout- <https://bookdown.org/yihui/rmarkdown/>.
 Per confrontare i risultati- <https://rstudio-pubs-static.s3.amazonaws.com/419751_b251adb1ab8e40f7aeab8b5c4a739c4f.html>.
 Per risolvere problemi di natura tecnica- <https://stackoverflow.com/>
