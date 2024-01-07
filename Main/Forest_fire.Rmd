@@ -4,6 +4,12 @@ author: "Andrei Petrisor 1085993, Antonio Radu 1085992, Lorenzo Medici 1085852, 
 date: "15-01-2024"
 output:
   
+  html_document:
+    theme: cerulean
+    toc: yes
+    toc_float: yes
+  fontsize: 11pt
+  geometry: margin=1in
   pdf_document:
     
     toc: true
@@ -11,12 +17,6 @@ output:
     fig_width: 7
     fig_height: 6
     fig_caption: true
-  fontsize: 11pt
-  geometry: margin=1in
-  html_document:
-    theme: cerulean
-    toc: yes
-    toc_float: yes
   word_document:
     toc: yes
 editor_options:
@@ -46,7 +46,8 @@ h2{color:blue;}
 
 # Dataset
 
-Questo dataset[^90] è pubblico e a disposizione per la ricerca. I dettagli
+Questo dataset (A Data Mining Approach to Predict Forest Fires
+using Meteorological Data)[^90] è pubblico e a disposizione per la ricerca. I dettagli
 sul dataset possono essere trovati in Cortez e Morais (2007). Il dataset
 è composto dalle seguenti variabili:
 
@@ -78,7 +79,7 @@ Il dataset è composto dalle seguenti rilevazioni:
 # Importante: bisogna specificare la directory dove il file è salvato.
 
 
-forest <- read.csv("C:/Forest-Fires/Dataset&Documentation/forestfires.csv")
+forest <- read.csv("C:/Users/radut/Documents/Forest-Fires/Dataset&Documentation/forestfires.csv")
 
 # Vediamo il nome delle variabili:
 
@@ -107,6 +108,8 @@ forest$day <- as.factor(forest$day)
 table(Months, Days)
 ```
 
+La tabella rappresenta il numero di osservazioni per mese(righe) e per giorno(colonne) della settimana.
+
 [^90]:Per ulteriori informazioni sul dataset visitare il link: <http://www3.dsi.uminho.pt/pcortez/fires.pdf>
 
 
@@ -122,17 +125,17 @@ mtext("Fig.1", side=4, line=1)
 hist((log(forest$area)), col = "red", breaks=15, ylab = "Frequency", xlab = "Hectars", main = "Ln transform")
 mtext("Fig.2", side=4, line=1)
 ```
-Possiamo vedere come l'istogramma(Fig.1) presenti una asimmetria positiva(obliqua a destra) , di conseguenza valutiamo i dati facendo la trasformata grazie al logaritmo, cosifacendo otteniamo un grafico più simile ad una normale.
+Possiamo vedere come l'istogramma(Fig.1) presenti una asimmetria positiva(obliqua a destra) , di conseguenza log-trasformiamo i dati, cosifacendo otteniamo un grafico più simile ad una normale.
 
 ```{r}
 summary(forest$area)
 ```
-Facendo il summary otteniamo i valori di: min, max, media, mediana, possiamo considerare i nostri dati molto vicini allo zero.
+Facendo il summary dei dati originali(non quelli log-trasformati) otteniamo i valori di: min, max, media, mediana, possiamo considerare i nostri dati molto vicini allo zero.
 
 ```{r, echo=F, message=F}
 sum(forest$area==0)/length(forest$area) # circa 48% sono 0
 ```
-Si evidenzia che il dataset ha il 48% dei valori che valgono 0.
+Si evidenzia che il dataset ha circa il 48% dei valori che valgono 0.
 
 ## Grafici densità area bruciata
 
@@ -175,14 +178,16 @@ mydata <- data.frame(skewness=x, deviazione=y, curtosi=z)
 mydata
 ```
 
-Possiamo vedere l'indice di simmetria(skew), l'indice di dispersione(curtosi) e la deviazione standard.
+Possiamo vedere l'indice di asimmetria(skewness), l'indice di dispersione(curtosi) e la deviazione standard.
 
 ```{r,figures-side16, echo=F, message=F,warning=F}
 library(tseries)#J-B test
 jarque.bera.test(forest$area)# J-B test
 ```
 
-Il Jarque Bera Test indica che la statistica del test è 145.49, con un valore p di 2.2e-16. Rifiuteremo l'ipotesi nulla che i dati siano distribuiti normalmente in questa circostanza.
+Si tratta di un test di normalità che verifica, come ipotesi nulla, simultaneamente se l’asimmetria(skewness) e la curtosi sono coerenti con i valori che dovrebbero assumere sotto l’ipotesi nulla di normalità, ossia rispettivamente 0 e 3. Sotto l’ipotesi nulla H0 il test si distribuisce asintoticamente come una chi-quadro con 2 gradi di libertà. Tale ipotesi viene rifiutata per valori di JB troppo grandi.
+
+Il Jarque Bera Test indica che la statistica del test è 145.49, con un valore p di 2.2e-16. Rifiuteremo, per quando detto in precedenza, l'ipotesi nulla che i dati siano distribuiti normalmente in questa circostanza.
 
 
 \newpage
@@ -225,21 +230,21 @@ Concentrandoci sulla variabile risposta (area) non ci sono correlazioni forti co
 
 # Domande specifiche
 
-In questo dataset siamo interessati a modellare l'area bruciata della foresta come funzione delle altre variabili. Siamo in particolare interessati a capire nel mese di agosto come possiamo spiegare l'area bruciata, vogliamo capire anche come si comportano i vari modelli(semplice, polinomiale e interazioni tra covariate) e interpretare i loro risultati. Nello specifico vogliamo scoprire da quali variabili dipende l'area bruciata maggiormente e anche vedere come si comporta il modello in previsione. 
+Avvalendoci di questo dataset, siamo interessati a modellare l'area bruciata della foresta in funzione delle altre variabili. In particoalare, siamo interessati a capire nel mese di agosto come possiamo spiegare l'area bruciata, vogliamo capire anche come si comportano i vari modelli(semplice, polinomiale e interazioni tra covariate) e interpretare i loro risultati. Nello specifico vogliamo scoprire da quali variabili dipende maggiormente l'area bruciata e anche vedere come si comporta il modello in previsione. 
 
 # Metodologia
 
 I metodi usati per raggiungere gli obiettivi sono dei metodi di regressione lineare, ci permettono di spiegare una variabile risposta (Y=area bruciata) in funzione delle altre variabili esplicative a disposizione nel dataset(covariate, X). Seguiremo i seguenti step:
 
--Step1. Verranno usati tutti i dati a nostra disposizione visto che non sarebbe sufficientemente esaustivo usare i dati di un campione cosi piccolo per spiegare l'intera popolazione, alleneremo 3 modelli di diversa complessità.
+-Step1. Dato che non sarebbe sufficientemente esaustivo usare solo una porzione dei dati, verranno utilizzati tutti i dati a nostra disposizione. Alleneremo quindi 3 modelli di diversi di complessità.
 
--Step2. Rimuoveremo gli outlaiers per vedere come cambiano gli R^2, cosi facendo scegliamo il miglior modello in base a chi ha l'RMSE piu basso.
+-Step2. Rimuoveremo gli outliers per vedere come cambiano gli R2, cosi facendo scegliamo il miglior modello in base a chi ha l'RMSE piu basso.
 
--Step3. Utilizzeremo la lasso che ci permette di penalizzare alcuni regressori, questo per rendere il modello piu semplice(facciamo variable selection), successivamente useremo la k-fold cross-validation per trovare un valore di lambda ottimale, la cross-validation è un ottimo modo per non overfittare e trovare il miglior modello.
+-Step3. Utilizzeremo la regressione Lasso che ci permette di penalizzare alcuni regressori, questo per rendere il modello piu semplice(facciamo model selection), successivamente useremo la k-fold cross-validation per trovare un valore di lambda ottimale, la cross-validation è un ottimo modo per non overfittare e trovare il miglior modello.
 
 # Analisi dati e discussione risultati
 
-Per la fase di testing prendiamo in considerazione solamente il mese di agosto per poter spiegare come varia l'area bruciata in relazione alle altre variabili.
+Prendiamo in considerazione solamente il mese di agosto per poter spiegare come varia l'area bruciata in relazione alle altre variabili.
 Questa fase sarà svolta su tutti i campioni a nostra disposizione(non ha senso prendere il 70% dei campioni per via del basso numero di dati).
 
 ```{r, echo=F, message=F}
@@ -251,7 +256,7 @@ forest_subset <- forest_subset[,-c(1:2)]#elimino colonne month,day e rain(visto 
 #forest_subset
 ```
 
-Proviamo a fare un modello lineare con i dati del mese di agosto. Le variabili che secondo noi ha piu senso considerare nel modello sono: rain ,RH ,temp, FFMC, e DMC. RH-FFMC-DMC sono degli indici che tengono conto dell'umidità. Nessuno di questi parametri agisce in modo diretto sullo sviluppo dell’incendio, ma sono tutti fattori predisponenti, perciò consideriamo rilevante studiare come influenzano l'area incendiata. Per capire la correlazione lineare tra la variabile risposta e le covariate mostriamo dei scatterplot.
+Proviamo a fare un modello lineare con i dati del mese di agosto. Le variabili che secondo noi ha piu senso considerare nel modello sono: rain ,RH ,temp, FFMC, e DMC. RH-FFMC-DMC sono degli indici che tengono conto dell'umidità. Nessuno di questi parametri agisce in modo diretto sullo sviluppo dell’incendio, ma sono tutti fattori predisponenti, perciò consideriamo rilevante studiare come influenzano l'area incendiata. Per capire la correlazione lineare tra la variabile risposta e le covariate mostriamo alcuni scatterplot.
 
 ```{r, figures-side8, fig.show="hold", out.width="50%",echo=F, message=F, warning=F}
 #+(temp*DMC) potrebbe essere utile
@@ -283,8 +288,7 @@ geom_point() +
 geom_smooth(method=lm , color="red", se=FALSE)
  
 ```
-Come possiamo vedere le correlazioni non sono molto significative, l'r^2 tende a 0 quindi c'è una forte mancanza di correlazione che ci suggerisce di usare il modello vuoto per i nostri test. Visto il gran numero di zeri deicidiamo di togliere la maggioraparte di essi per vedere come performano i modelli. Proviamo ora a creare 3 modelli(semplice, polinomiale e polinomiale con interazioni)(per realizzare i migliori modelli abbiamo usato la tecnica step-wise per scegliere le covariate piu significative).
-
+Come possiamo vedere le correlazioni non sono molto significative, l'R2 tende a 0 quindi c'è una forte mancanza di correlazione che ci suggerisce di usare il modello vuoto per i nostri test. Visto il gran numero di zeri deicidiamo di togliere la maggioraparte di essi per vedere come performano i modelli. Proviamo ora a creare 3 modelli(semplice, polinomiale e polinomiale con interazioni).
 ```{r,echo=F, message=F}
 # Optional:
 #forest <- fastDummies::dummy_cols(forest, remove_first_dummy = TRUE)[-c(1,2)]
@@ -319,8 +323,8 @@ summary(model3)
 
 ```
 
-Come possiamo vedere i nostri modelli non performano benissimo, con degli r^2 (2%,7.7%,7.8%) cosi bassi i modelli hanno un grande margine di errore. Il modello 1 ci suggerisce che il modello migliore è quello senza nessuna covariata e quindi avrebbe senso tenere soltanto l'intercetta. Il modello 2 ci evidenzia come i termini polinomiali rendano la correlazione tra area e le covariate un pò più significativa (rispetto al modello 1). 
-Il modello 3 ha un r^2 simile al modello 2, ma le sue covariate non sono significative. Togliamo dal primo modello le covariate con i p-values piu grandi(ISI). Proviamo a vedere se ci sono degli Outliers(valori estremi) nei modelli.
+Come possiamo vedere i nostri modelli non performano benissimo, con degli R2 (2%,7.7%,7.8%) così bassi i modelli hanno un elevato margine di errore. Il modello 1 ci suggerisce che il modello migliore è quello senza nessuna covariata e quindi avrebbe senso tenere soltanto l'intercetta. Il modello 2 ci evidenzia come i termini polinomiali rendano la correlazione tra area e le covariate un pò più significativa (rispetto al modello 1). 
+Il modello 3 ha un R2 simile al modello 2, ma le sue covariate non sono significative. Togliamo dal primo modello le covariate con i p-value piu grandi(ISI). Proviamo a vedere se ci sono degli Outliers(valori estremi) nei modelli.
 
 ```{r,echo=F, message=F}
 #rownames(forest_subset)
@@ -357,7 +361,7 @@ ols_plot_resid_lev(model3)
 #mtext("Fig.2", side=4, line=1)#side  1 = sotto, 2 = sinistra, 3 = sopra, 4 = destra.
 ```
 
-Possiamo vedere come nel grafici (Fig.1), un numero considerevole di osservazioni non segue l'andamento desiderato, poniamo maggiore attenzione sul grafico Q-Q Res. dove possiamo vedere che i vari valori alle code tendono a spostarsi di molto, l'andamento non tende per niente alla normale. Per quanto riguarda il grafico a destra possiamo notare come alcune rilevazioni siano parecchio "lontane" rispetto alle altre, poniamo attenzione soprattuto a quelle che sono Outlier&Leverage e le rimuoviamo. 
+Possiamo vedere come nei grafici (Fig.1), un numero considerevole di osservazioni non segue l'andamento desiderato, poniamo maggiore attenzione sul grafico Q-Q Res. dove possiamo vedere che i vari valori alle code tendono a spostarsi di molto, l'andamento non tende per niente alla normale. Per quanto riguarda il grafico a destra possiamo notare come alcune rilevazioni siano parecchio "lontane" rispetto alle altre, poniamo attenzione soprattuto a quelle che sono Outlier&Leverage e le rimuoviamo. 
 
 
 
