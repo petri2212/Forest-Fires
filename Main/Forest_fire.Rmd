@@ -4,12 +4,6 @@ author: "Andrei Petrisor 1085993, Antonio Radu 1085992, Lorenzo Medici 1085852, 
 date: "15-01-2024"
 output:
   
-  html_document:
-    theme: cerulean
-    toc: yes
-    toc_float: yes
-  fontsize: 11pt
-  geometry: margin=1in
   pdf_document:
     
     toc: true
@@ -17,6 +11,12 @@ output:
     fig_width: 7
     fig_height: 6
     fig_caption: true
+  fontsize: 11pt
+  geometry: margin=1in
+  html_document:
+    theme: cerulean
+    toc: yes
+    toc_float: yes
   word_document:
     toc: yes
 editor_options:
@@ -79,7 +79,7 @@ Il dataset è composto dalle seguenti rilevazioni:
 # Importante: bisogna specificare la directory dove il file è salvato.
 
 
-forest <- read.csv("C:/Users/radut/Documents/Forest-Fires/Dataset&Documentation/forestfires.csv")
+forest <- read.csv("C:/Forest-Fires/Dataset&Documentation/forestfires.csv")
 
 # Vediamo il nome delle variabili:
 
@@ -147,7 +147,7 @@ plot(density(log(forest$area)), col="blue",main = "Ln Densità area")
 ```
 \newpage
 
-Sembra esserci anche una forte distorsione rispetto ai residui che non sono normalmente distribuiti. Ciò sembra essere dovuto al gran numero di 0 nel database. 
+
 
 ```{r, echo=F, message=F,warning=F}
 library(PerformanceAnalytics)#skew
@@ -245,16 +245,22 @@ I metodi usati per raggiungere gli obiettivi sono dei metodi di regressione line
 # Analisi dati e discussione risultati
 
 Prendiamo in considerazione solamente il mese di agosto per poter spiegare come varia l'area bruciata in relazione alle altre variabili.
-Questa fase sarà svolta su tutti i campioni a nostra disposizione(non ha senso prendere il 70% dei campioni per via del basso numero di dati).
+Questa fase sarà svolta su tutti i campioni a nostra disposizione(non ha senso prendere il 70% dei campioni per via del basso numero di dati). La generalizzazione dei modelli viene fatta nello Step2 tramite cross-validazione, alleneremo perciò diversi modelli con tutti i dati per poi semplificarli tramite regressione Lasso.
 
-```{r, echo=F, message=F}
+Viene riportato il correlation plot riferito al mese di agosto:
+
+```{r,figures-side9, fig.show="hold", out.width="50%", echo=F, message=F}
 #summary(forest)
 
 forest_subset <- forest[which(forest$month=="aug"),]
 #summary(forest_subset)
-forest_subset <- forest_subset[,-c(1:2)]#elimino colonne month,day e rain(visto che rain = 0) dal dataset 
+forest_subset <- forest_subset[,-c(1:2)]#elimino colonne month,day e rain(visto che rain = 0) da dataset 
+
+M <- cor(as.matrix(forest_subset)) # correlation matrix
+corrplot(M, method = 'number')
 #forest_subset
 ```
+
 
 Proviamo a fare un modello lineare con i dati del mese di agosto. Le variabili che secondo noi ha piu senso considerare nel modello sono: rain ,RH ,temp, FFMC, e DMC. RH-FFMC-DMC sono degli indici che tengono conto dell'umidità. Nessuno di questi parametri agisce in modo diretto sullo sviluppo dell’incendio, ma sono tutti fattori predisponenti, perciò consideriamo rilevante studiare come influenzano l'area incendiata. Per capire la correlazione lineare tra la variabile risposta e le covariate mostriamo alcuni scatterplot.
 
@@ -288,7 +294,7 @@ geom_point() +
 geom_smooth(method=lm , color="red", se=FALSE)
  
 ```
-Come possiamo vedere le correlazioni non sono molto significative, l'R2 tende a 0 quindi c'è una forte mancanza di correlazione che ci suggerisce di usare il modello vuoto per i nostri test. Visto il gran numero di zeri deicidiamo di togliere la maggioraparte di essi per vedere come performano i modelli. Proviamo ora a creare 3 modelli(semplice, polinomiale e polinomiale con interazioni).
+Come possiamo vedere le correlazioni non sono molto significative, l'R2 tende a 0 quindi c'è una forte mancanza di correlazione. Visto il gran numero di zeri deicidiamo di togliere la maggioraparte di essi per vedere come performano i modelli. Proviamo ora a creare 3 modelli(semplice, polinomiale e polinomiale con interazioni).
 ```{r,echo=F, message=F}
 # Optional:
 #forest <- fastDummies::dummy_cols(forest, remove_first_dummy = TRUE)[-c(1,2)]
@@ -323,7 +329,7 @@ summary(model3)
 
 ```
 
-Come possiamo vedere i nostri modelli non performano benissimo, con degli R2 (2%,7.7%,7.8%) così bassi i modelli hanno un elevato margine di errore. Il modello 1 ci suggerisce che il modello migliore è quello senza nessuna covariata e quindi avrebbe senso tenere soltanto l'intercetta. Il modello 2 ci evidenzia come i termini polinomiali rendano la correlazione tra area e le covariate un pò più significativa (rispetto al modello 1). 
+Come possiamo vedere i nostri modelli non performano benissimo, con degli R2 (2%,7.7%,7.8%) così bassi i modelli hanno un elevato margine di errore. Il p-value del modello 1 ci suggerisce che il modello migliore è quello senza nessuna covariata e quindi avrebbe senso tenere soltanto l'intercetta(p-value > 5%). Il modello 2 ci evidenzia come i termini polinomiali rendano la correlazione tra area e le covariate un pò più significativa (rispetto al modello 1). 
 Il modello 3 ha un R2 simile al modello 2, ma le sue covariate non sono significative. Togliamo dal primo modello le covariate con i p-value piu grandi(ISI). Proviamo a vedere se ci sono degli Outliers(valori estremi) nei modelli.
 
 ```{r,echo=F, message=F}
@@ -428,11 +434,11 @@ summary(model3)
 
 ```
 
-I modelli presentano un leggero miglioramento. Il modello 1 peggiora e quindi ci dice in definitiva che un modello lineare semplice non conviene per studiare questo dataset. Il modello 2 migliora leggermente, un r^2 cosi piccolo e un r^2 corretto cosi diverso ci indica che ciò è dovuto al fatto che il secondo corregge il primo tenendo conto anche di n(numero campioni) e di p(prametri). Se n non è molto più grande di p, allora l'R2 corretto penalizza R^2 poiché c'è il forte rischio di andare in over-fitting. Il modello 3 si è rilevato essere il migior modello tra i 3, con un r^2 di 0.19(comunque basso) e le covariate che diventano un minimo significative, è il modello che si adatta meglio ai nostri dati.
+I modelli presentano un leggero miglioramento. Il modello 1 peggiora e quindi ci dice in definitiva che un modello lineare semplice non conviene per studiare questo dataset. Il modello 2 migliora leggermente, un R2 cosi piccolo e un R2 corretto cosi diverso ci indica che ciò è dovuto al fatto che il secondo corregge il primo tenendo conto anche di n(numero campioni) e di p(parametri). Se n non è molto più grande di p, allora l'R2 corretto penalizza R2 poiché c'è il forte rischio di andare in over-fitting. Il modello 3 si è rilevato essere il miglior modello tra i 3, con un R2 di 0.19(comunque basso) e le covariate che diventano un minimo significative, è il modello che si adatta meglio ai nostri dati.
 
-## Scelta modello
+## Scelta del modello
 
-Per valutare quale dei 3 modelli sia meglio abbiamo analizzato in precedenza i diversi r^2 per capire chi avesse un RMSE piu piccolo(modello 3). Vogliamo mettere i 3 modelli a confronto anche tramite la tecnica AIC(Akaike information criterion). Consiste in un metodo per la valutazione e il confronto tra modelli statistici. Fornisce una misura della qualità della stima di un modello statistico tenendo conto sia della bontà di adattamento che della complessità del modello. La regola è quella di preferire i modelli con l’AIC più basso. 
+Per valutare quale dei 3 modelli sia meglio abbiamo analizzato in precedenza i diversi R2 per capire chi avesse un RMSE piu piccolo(modello 3). Vogliamo mettere i 3 modelli a confronto anche tramite la tecnica AIC(Akaike information criterion). Consiste in un metodo per la valutazione e il confronto tra modelli statistici. Fornisce una misura della qualità della stima di un modello statistico tenendo conto sia della bontà di adattamento che della complessità del modello. La regola è quella di preferire i modelli con l’AIC più basso. 
 
 ```{r, echo=F,message = F,warning=F}
 # Create vector with values
@@ -447,11 +453,11 @@ b = c("AIC lm 1", "BIC lm 1", "AIC lm 2", "BIC lm 2","AIC lm 3", "BIC lm 3")
 names(a) = b
 print(a)
 ```
-I risultati ci mostrano come il modello 3 abbia l'AIC piu basso nonostante sia molto piu complesso rispetto al primo e al secondo modello, questo significa che il primo e il secondo modello performano molto male. Scegliamo(tramite r^2) il 3 modello per svolgere le previsioni.
+I risultati ci mostrano come il modello 3 abbia l'AIC piu basso nonostante sia molto piu complesso rispetto al primo e al secondo modello, questo significa che il primo e il secondo modello performano molto male. Scegliamo(tramite R2) il 3 modello per svolgere le previsioni.
 
-## Previsioni puntuale
+## Errore medio commesso dal modello scelto
 
-Per stima puntuale s’intende l’insieme dei metodi inferenziali che permettono di attribuire un valore ad un parametro della popolazione, utilizzando i dati di un campione casuale osservato (x1, x2,…,xn) ed elaborandoli. Per valutare la bontà di uno stimatore è necessario considerare le stime ottenute ripetendo un grande numero di volte il processo impiegato per eseguire una stima.  
+Calcoliamo il RMSE del modello 3 in training(cioè calcolata con gli stessi dati utilizzati per allenare il modello).  
 
 ```{r,echo=F, message = F}
 #use lasso regression model to predict response value
@@ -468,7 +474,7 @@ sqrt(mean((forest_subset$area - previsioni_mod2)^2))#--
 
 ## LASSO regression
 
-La tecnica LASSO(least absolute shrinkage and selection operator) è un metodo di analisi della regressione che esegue sia la selezione delle variabili sia la regolarizzazione per migliorare l'accuratezza della previsione e l'interpretabilità del modello statistico risultante. Il metodo lasso presuppone che i coefficienti del modello lineare siano sparsi, ossia che pochi di essi siano non nulli. 
+La tecnica LASSO(least absolute shrinkage and selection operator) è un metodo di analisi della regressione che esegue sia la selezione delle variabili sia la regolarizzazione per migliorare l'accuratezza della previsione e l'interpretabilità del modello statistico risultante. Il metodo Lasso presuppone che i coefficienti del modello lineare siano sparsi, ossia che pochi di essi siano non nulli. Diversamente dalla tecnica Ridge, la regressione Lasso manda a esattamente a zero i coefficienti non significativi, eseguendo i questo modo una vera e propria semplificazione del modello.
 
 ```{r,figures-side7, fig.show="hold", out.width="50%", echo=F, message = F, warning=F}
 #penalizza le covariate,avra una parte classica piu un errore
@@ -500,25 +506,26 @@ best_model <- glmnet(x, y, alpha = 1, lambda = best_lambda)
 #coef(best_model)
 ```
 
-Il grafico dovrebbe assomigliare ad una curva esponenziale, nel nostro caso il mean-squared error tende ad un andamento esponenziale 2 volte, ma alla fine torna al punto di partenza. Questo sta ad indicare che indipendentemente dal lambda non cambia la penalizzazione, dovuto al fatto che i regressori non hanno molto senso.
+Il grafico dovrebbe assomigliare ad una curva esponenziale, nel nostro caso il mean-squared error tende ad un andamento esponenziale, ma alla fine torna al punto di partenza. Questo sta ad indicare che il modello diventa troppo semplice (under-fitting), quindi le sue performance peggiorano.
 
 ## Previsioni con Lasso
-```{r, message = F, warning=F}
+```{r, echo=F,message = F, warning=F}
 #use lasso regression model to predict response value
 new = model.matrix(area ~ temp+I(temp^3)+wind+RH+I(RH^2)+I(RH*wind)+I(temp^2*wind^2)
                    +I(RH*temp)+I(temp*ISI),data=forest_subset)
 previsioni = predict(best_model, s = best_lambda, newx = new)
 
 # Root Mean Squared Error (RMSE): è una misura dell'errore che compiamo
-sqrt(mean((forest_subset$area - previsioni)^2))#errore minimo
+#sqrt(mean((forest_subset$area - previsioni)^2))#errore minimo-->useremmo questo sqrt se avessimo i dati ti test 
 
+sqrt(1.5)#praticamente 1.5 è il valore della y corrispondente al nostro best lambda log(0.0002)-->-3.5
 ```
+Il RMSE di test calcolato in cross-validazione durante la procedura di scelta di lambda ((1.5)^(1/2) = 1.22) è peggiore di quello di training (1.05). (E' normale che un modello si comporti meglio sui dati sui quali è stato allenato piuttosto che su quelli nuovi.)
 
-Come possiamo vedere la previsione con la Lasso è poco peggiore rispetto alla previsone puntuale, decidiamo quindi di usare la previsione puntuale per prevedere i dati. 
 
 # Conclusioni
 
-Concentrandosi sul mese di agosto, spiegare l'area bruciata in funzionde delle altre variabili risulta non facile visto la poca quantità di dati a disposizione. Poiché il valore R^2 del modello è molto basso, probabilmente i predittori avranno un errore significativo e potrebbero non essere affidabili. Gli sviluppi futuri potttrebbero essere:
+Concentrandosi sul mese di agosto, spiegare l'area bruciata in funzionde delle altre variabili risulta non facile visto la poca quantità di dati a disposizione. Poiché il valore R2 del modello è molto basso, i regressori non hanno una potenza espressiva tale da permettere un'adeguata descrizione della variabile in uscita, oggetto dell'analisi, tramite un modello lineare. Gli sviluppi futuri potrebbero essere superare la linearità e optare su modelli statistici più complessi, per esempio:
 
 -Avere piu dati e/o aggiungere qualche altra variabile (e.g. variabili spaziali) per una maggior accuratezza nei risultati.
 
