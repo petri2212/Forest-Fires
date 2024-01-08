@@ -506,7 +506,7 @@ best_model <- glmnet(x, y, alpha = 1, lambda = best_lambda)
 #coef(best_model)
 ```
 
-Il grafico dovrebbe assomigliare ad una curva esponenziale, nel nostro caso il mean-squared error tende ad un andamento esponenziale, ma alla fine torna al punto di partenza. Questo sta ad indicare che il modello diventa troppo semplice (under-fitting), quindi le sue performance peggiorano.
+La curva in teoria dovrebbe assomigliare a un'esponenziale poiché all'aumentare di lambda il modello va in under-fitting (modello troppo semplice), quindi il MSE di test diverge, in pratica non è così poiché, nonostante la cross-validazione, la scarsa disponibilità di dati causa delle stime dei MSE poco stabili (alta varianza): è sufficiente dare un'occhiata agli intervalli di confidenza particolarmente ampi.
 
 ## Previsioni con Lasso
 ```{r, echo=F,message = F, warning=F}
